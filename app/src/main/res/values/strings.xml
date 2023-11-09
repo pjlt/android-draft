@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Lanthing</string>
+    <string name="device_id">Device ID</string>
+    <string name="access_code">Access Code</string>
+</resources>

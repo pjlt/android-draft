@@ -1,0 +1,112 @@
+/*
+ * BSD 3-Clause License
+ *
+ * Copyright (c) 2023 Zhennan Tu <zhennan.tu@gmail.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package cn.lanthing.codec;
+
+import android.util.Log;
+
+import com.google.protobuf.Message;
+
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
+
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToMessageCodec;
+
+public class LtCodec extends MessageToMessageCodec<NetPacket, LtMessage> {
+
+    public static final class MsgType {
+        public final long ID;
+        public final String className;
+
+        public MsgType(long id, String name) {
+            ID = id;
+            className = name;
+        }
+    }
+
+    private final static HashMap<Long, Method> createMethods = new HashMap<>();
+
+    private final static Random random = new Random();
+
+    private static boolean initialized = false;
+
+    public static synchronized void initialize(List<MsgType> msgTypes) throws Exception {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
+        for (MsgType msgType : msgTypes) {
+            createMethods.put(msgType.ID, Class.forName(msgType.className).getDeclaredMethod("parseFrom", byte[].class));
+        }
+    }
+
+    @Override
+    protected void encode(ChannelHandlerContext channelHandlerContext, LtMessage ltMessage, List<Object> list) {
+        NetPacket netPacket = new NetPacket();
+        netPacket.payloadSize = ltMessage.protoMsg.getSerializedSize() + 4;
+        if (netPacket.payloadSize > 16 * 1024 * 1024) {
+            Log.e( "codec", String.format("LtMessage too long %d", netPacket.payloadSize));
+            return;
+        }
+        netPacket.payload = Unpooled.buffer(netPacket.payloadSize);
+        netPacket.payload.writeIntLE((int)ltMessage.type);
+        netPacket.payload.writeBytes(ltMessage.protoMsg.toByteArray());
+        list.add(netPacket);
+    }
+
+    @Override
+    protected void decode(ChannelHandlerContext channelHandlerContext, NetPacket netPacket, List<Object> list) throws Exception {
+        try {
+            LtMessage message = new LtMessage();
+            message.type = netPacket.payload.readUnsignedIntLE();
+            Method createMethod = LtCodec.createMethods.get(message.type);
+            if (createMethod == null) {
+                Log.w("codec", String.format("Unknown message type: %d", message.type));
+                return;
+            }
+            byte[] bytes = new byte[netPacket.payload.readableBytes()];
+            netPacket.payload.readBytes(bytes);
+            message.protoMsg = (Message) createMethod.invoke(null, bytes);
+            if (message.protoMsg != null) {
+                list.add(message);
+            }
+        } catch (Exception e) {
+            Log.e("codec", e.toString());
+        } finally {
+            netPacket.payload.release();
+        }
+
+    }
+}
