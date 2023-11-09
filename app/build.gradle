@@ -39,15 +39,15 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion '1.4.3'
     }
-    packaging {
-        resources {
-            excludes += '/META-INF/{AL2.0,LGPL2.1}'
-        }
+    packagingOptions {
+        exclude 'META-INF/INDEX.LIST'
+        exclude 'META-INF/io.netty.versions.properties'
+        exclude 'META-INF/{AL2.0,LGPL2.1}'
     }
 }
 
 dependencies {
-    implementation project(path: ':ltproto')
+    implementation project(':ltproto')
     implementation "com.google.protobuf:protobuf-java:3.22.2"
     implementation "io.netty:netty-all:4.1.97.Final"
     implementation 'androidx.core:core-ktx:1.9.0'
