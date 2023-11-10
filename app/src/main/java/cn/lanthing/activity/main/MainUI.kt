@@ -20,12 +20,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cn.lanthing.R
-import cn.lanthing.activity.stream.Stream
 import cn.lanthing.ui.theme.AppTheme
 
 @Composable
@@ -43,9 +41,8 @@ fun Logging() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainPage() {
-    val context = LocalContext.current
-    var deviceID by remember { mutableStateOf("") }
+fun MainPage(connect: (deviceID: Long, accessCode: String) -> Unit) {
+    var deviceID by remember { mutableStateOf(0L) }
     var accessCode by remember { mutableStateOf("") }
     AppTheme {
         Surface(
@@ -60,14 +57,14 @@ fun MainPage() {
             ) {
                 OutlinedTextField(
                     value = " ",
-                    onValueChange = { deviceID = it },
+                    onValueChange = { deviceID = it.toLong() },
                     label = { Text(stringResource(R.string.device_id)) })
                 OutlinedTextField(
                     value = " ",
                     onValueChange = { accessCode = it },
                     label = { Text(stringResource(R.string.access_code)) })
                 Button(
-                    onClick = { context.startActivity(Intent(context, Stream::class.java)) },
+                    onClick = { connect(deviceID, accessCode) },
                     modifier = Modifier
                         .padding(8.dp)
                         .fillMaxWidth()
@@ -79,10 +76,38 @@ fun MainPage() {
     }
 }
 
+@Composable
+fun Connecting() {
+    AppTheme {
+        Surface {
+            Column {
+                LinearProgressIndicator(
+                    modifier = Modifier.width(64.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ErrorCode(errCode: Int, back: () -> Unit) {
+    AppTheme {
+        Surface {
+            Column {
+                Text(text = "ErrorCode $errCode")
+                Button(onClick = back) {
+                    Text(text = "Back")
+                }
+            }
+        }
+    }
+}
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun MainPagePreview() {
-    MainPage()
+    MainPage { _, _ -> {
+    }}
 }
 
 @Preview(showBackground = true, showSystemUi = true)

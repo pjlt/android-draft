@@ -4,6 +4,8 @@ import android.util.Log
 import cn.lanthing.codec.LtCodec
 import cn.lanthing.codec.LtMessage
 import cn.lanthing.codec.Protocol
+import cn.lanthing.ltproto.LtProto
+import cn.lanthing.ltproto.common.KeepAliveProto.KeepAlive
 import com.google.protobuf.Message
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.Channel
@@ -19,6 +21,7 @@ import java.io.InputStream
 import java.net.InetSocketAddress
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
+import java.util.concurrent.TimeUnit
 
 
 class SocketClient(
@@ -30,17 +33,12 @@ class SocketClient(
     private val onMessage: (msg: LtMessage) -> Unit
 ) : ChannelInboundHandlerAdapter() {
 
-    private var keepAliveInitialized: Boolean = false
-
     private var channel: Channel? = null
 
     @Throws(Exception::class)
     override fun channelActive(ctx: ChannelHandlerContext) {
         channel = ctx.channel()
-        if (!keepAliveInitialized) {
-            keepAliveInitialized = true
-            sendKeepAlive()
-        }
+        ctx.channel().eventLoop()?.scheduleAtFixedRate(this::sendKeepAlive, 0, 10, TimeUnit.SECONDS)
         onConnected()
     }
 
@@ -53,7 +51,11 @@ class SocketClient(
 
     @Throws(Exception::class)
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        onMessage(msg as LtMessage)
+        val ltMessage = msg as LtMessage
+        if (ltMessage.type == LtProto.KeepAliveAck.ID) {
+            return
+        }
+        onMessage(ltMessage)
     }
 
     @Throws(Exception::class)
@@ -100,8 +102,8 @@ class SocketClient(
     }
 
     private fun sendKeepAlive() {
-        //
+        val msg = KeepAlive.newBuilder().build();
+        msg ?: return
+        sendMessage(LtProto.KeepAlive.ID, msg)
     }
-
-
 }

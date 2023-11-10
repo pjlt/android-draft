@@ -2,24 +2,34 @@
 
 package cn.lanthing.activity.main
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.integerResource
 import cn.lanthing.R
+import cn.lanthing.activity.stream.StreamActivity
 import cn.lanthing.codec.LtMessage
 import cn.lanthing.ltproto.ErrorCodeOuterClass
 import cn.lanthing.ltproto.LtProto
+import cn.lanthing.ltproto.common.StreamingParamsProto.StreamingParams
+import cn.lanthing.ltproto.common.VideoCodecTypeProto.VideoCodecType
 import cn.lanthing.ltproto.server.AllocateDeviceIDAckProto.AllocateDeviceIDAck
 import cn.lanthing.ltproto.server.AllocateDeviceIDProto.AllocateDeviceID
+import cn.lanthing.ltproto.server.ConnectionTypeProto
 import cn.lanthing.ltproto.server.LoginDeviceAckProto.LoginDeviceAck
 import cn.lanthing.ltproto.server.LoginDeviceProto
 import cn.lanthing.ltproto.server.NewVersionProto.NewVersion
 import cn.lanthing.ltproto.server.RequestConnectionAckProto.RequestConnectionAck
+import cn.lanthing.ltproto.server.RequestConnectionProto.RequestConnection
 import cn.lanthing.net.SocketClient
 
 class MainActivity : ComponentActivity() {
@@ -59,6 +69,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
     private var deviceID: Long = 0 // 只做主控，这个ID是不显示给用户的
     private var deviceCookie: String = ""
     private var settings: SharedPreferences? = null
+    private var requestFlying: Boolean = false
     private var versionMajor: Int = 0
     private var versionMinor: Int = 0
     private var versionPatch: Int = 0
@@ -88,6 +99,36 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
             versionMinor = integerResource(id = R.integer.version_minor)
             versionPatch = integerResource(id = R.integer.version_patch)
             Logging()
+        }
+    }
+
+    // 跑在UI线程
+    private fun requestConnection(peerID: Long, accessCode: String) {
+        requestFlying = true
+        val cookie = settings?.getString("to_$peerID", "")
+        val msg = RequestConnection.newBuilder()
+            .setRequestId(0)
+            .setDeviceId(peerID)
+            .setAccessToken(accessCode)
+            .setConnType(ConnectionTypeProto.ConnectionType.Control)
+        if (cookie != null) {
+            msg.setCookie(cookie)
+        }
+        val params = StreamingParams.newBuilder()
+            .setEnableDriverInput(false)
+            .setEnableGamepad(false)
+            .setScreenRefreshRate(60)
+            .setVideoWidth(1920)
+            .setVideoHeight(1080)
+            .addVideoCodecs(VideoCodecType.HEVC)
+            .addVideoCodecs(VideoCodecType.AVC)
+        msg.setStreamingParams(params.build())
+        socketClient.sendMessage(LtProto.RequestConnection.ID, msg.build())
+        Handler(Looper.getMainLooper()).postDelayed({
+            //TODO: 超时处理
+        }, 10_000)
+        setContent {
+            Connecting()
         }
     }
 
@@ -136,19 +177,35 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
         socketClient.sendMessage(LtProto.LoginDevice.ID, msg)
     }
 
-    private fun allocateDeviceID() {
-        val msg = AllocateDeviceID.newBuilder().build();
-        msg ?: return
-        socketClient.sendMessage(LtProto.AllocateDeviceID.ID, msg)
-    }
-
     private fun onLoginDeviceAck(msg: LoginDeviceAck) {
         when (msg.errCode) {
             ErrorCodeOuterClass.ErrorCode.Success -> {
-
+                Log.e("main", "LoginDevice success")
             }
             ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus -> {
                 //TODO: 显示错误码
+                return
+            }
+            ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID -> {
+                Log.e("main", "LoginDevice failed, LoginDeviceInvalidID")
+                if (msg.newDeviceId != 0L) {
+                    deviceID = msg.newDeviceId
+                    settings?.edit()?.putLong("device_id", msg.newDeviceId)?.apply()
+
+                } else {
+                    //TODO: 显示错误码
+                    return
+                }
+            }
+            ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie -> {
+                Log.e("main", "LoginDevice failed, LoginDeviceInvalidCookie")
+                if (msg.newDeviceId != 0L) {
+                    deviceID = msg.newDeviceId
+                    settings?.edit()?.putLong("device_id", msg.newDeviceId)?.apply()
+                } else {
+                    //TODO: 显示错误码
+                    return
+                }
             }
             else -> {
                 Log.e("main", "Unknown LoginDeviceAck error code ${msg.errCode}")
@@ -161,8 +218,14 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
             editor.apply()
         }
         setContent {
-            MainPage()
+            MainPage(this::requestConnection)
         }
+    }
+
+    private fun allocateDeviceID() {
+        val msg = AllocateDeviceID.newBuilder().build();
+        msg ?: return
+        socketClient.sendMessage(LtProto.AllocateDeviceID.ID, msg)
     }
 
     private fun onAllocateDeviceIDAck(msg: AllocateDeviceIDAck) {
@@ -180,7 +243,16 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
     }
 
     private fun onRequestConnectionAck(msg: RequestConnectionAck) {
-        //
+        if (!requestFlying) {
+            Log.e("main", "Received RequestConnectionAck but too late")
+            return
+        }
+        requestFlying = false
+        setContent {
+            val activity = LocalContext.current as Activity
+            activity.startActivity(Intent(this@MainActivity, StreamActivity::class.java))
+        }
+
     }
 
     private fun onNewVersion(msg: NewVersion) {
