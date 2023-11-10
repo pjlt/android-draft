@@ -125,7 +125,16 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
         msg.setStreamingParams(params.build())
         socketClient.sendMessage(LtProto.RequestConnection.ID, msg.build())
         Handler(Looper.getMainLooper()).postDelayed({
-            //TODO: 超时处理
+            if (requestFlying) {
+                requestFlying = false
+                setContent {
+                    ErrorMessage(errCode = ErrorCodeOuterClass.ErrorCode.RequestConnectionTimeout.number) {
+                        setContent {
+                            MainPage(this::requestConnection)
+                        }
+                    }
+                }
+            }
         }, 10_000)
         setContent {
             Connecting()
@@ -183,7 +192,13 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
                 Log.e("main", "LoginDevice success")
             }
             ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus -> {
-                //TODO: 显示错误码
+                setContent {
+                    ErrorMessage(errCode = ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus.number) {
+                        setContent {
+                            MainPage(this::requestConnection)
+                        }
+                    }
+                }
                 return
             }
             ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID -> {
@@ -193,7 +208,13 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
                     settings?.edit()?.putLong("device_id", msg.newDeviceId)?.apply()
 
                 } else {
-                    //TODO: 显示错误码
+                    setContent {
+                        ErrorMessage(errCode = ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidID.number) {
+                            setContent {
+                                MainPage(this::requestConnection)
+                            }
+                        }
+                    }
                     return
                 }
             }
@@ -203,7 +224,13 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
                     deviceID = msg.newDeviceId
                     settings?.edit()?.putLong("device_id", msg.newDeviceId)?.apply()
                 } else {
-                    //TODO: 显示错误码
+                    setContent {
+                        ErrorMessage(errCode = ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidCookie.number) {
+                            setContent {
+                                MainPage(this::requestConnection)
+                            }
+                        }
+                    }
                     return
                 }
             }
@@ -256,6 +283,6 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
     }
 
     private fun onNewVersion(msg: NewVersion) {
-        //
+        //TODO: show new version
     }
 }

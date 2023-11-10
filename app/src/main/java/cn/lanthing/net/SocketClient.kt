@@ -86,13 +86,14 @@ class SocketClient(
                     ch.pipeline().addLast("client", this@SocketClient)
                 }
             })
-        bs.connect(InetSocketAddress(host, port))
+        loopGroup.execute { bs.connect(InetSocketAddress(host, port)) }
+
         Log.i("socket", String.format("Connecting to %s:%d", host, port))
     }
 
     fun sendMessage(msgID: Long, msg: Message) {
         val eventLoop = channel?.eventLoop() ?: return
-        if (eventLoop.inEventLoop()) {
+        if (!eventLoop.inEventLoop()) {
             eventLoop.submit() {
                 sendMessage(msgID, msg)
             }

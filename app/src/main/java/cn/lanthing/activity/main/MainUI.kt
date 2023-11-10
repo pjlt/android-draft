@@ -1,6 +1,5 @@
 package cn.lanthing.activity.main
 
-import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -90,7 +89,7 @@ fun Connecting() {
 }
 
 @Composable
-fun ErrorCode(errCode: Int, back: () -> Unit) {
+fun ErrorMessage(errCode: Int, back: () -> Unit) {
     AppTheme {
         Surface {
             Column {
