@@ -4,6 +4,7 @@ import android.util.Log
 import cn.lanthing.codec.LtCodec
 import cn.lanthing.codec.LtMessage
 import cn.lanthing.codec.Protocol
+import com.google.protobuf.Message
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
@@ -24,32 +25,41 @@ class SocketClient(
     private val host: String,
     private val port: Int,
     private val certificate: String,
-    deviceID: Long,
-    onConnected: Runnable,
-    onDisconnected: Runnable
+    private val onConnected: () -> Unit,
+    private val onDisconnected: () -> Unit,
+    private val onMessage: (msg: LtMessage) -> Unit
 ) : ChannelInboundHandlerAdapter() {
+
+    private var keepAliveInitialized: Boolean = false
+
+    private var channel: Channel? = null
 
     @Throws(Exception::class)
     override fun channelActive(ctx: ChannelHandlerContext) {
-        loginDevice()
+        channel = ctx.channel()
+        if (!keepAliveInitialized) {
+            keepAliveInitialized = true
+            sendKeepAlive()
+        }
+        onConnected()
     }
 
     @Throws(Exception::class)
     override fun channelInactive(ctx: ChannelHandlerContext) {
-        //Reconnect
         Log.e("net", "Reconnecting to $host:$port")
+        onDisconnected()
         connect()
     }
 
     @Throws(Exception::class)
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-        dispatchMessage(msg as LtMessage)
+        onMessage(msg as LtMessage)
     }
 
     @Throws(Exception::class)
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
-        //Reconnect
         Log.e("net", "SocketClient caught exception $cause")
+        onDisconnected()
         connect()
     }
 
@@ -78,18 +88,20 @@ class SocketClient(
         Log.i("socket", String.format("Connecting to %s:%d", host, port))
     }
 
-    private fun dispatchMessage(msg: LtMessage) {
-        when (msg.type) {
-
+    fun sendMessage(msgID: Long, msg: Message) {
+        val eventLoop = channel?.eventLoop() ?: return
+        if (eventLoop.inEventLoop()) {
+            eventLoop.submit() {
+                sendMessage(msgID, msg)
+            }
+            return
         }
+        channel?.writeAndFlush(LtMessage(msgID, msg))
     }
 
-    private fun loginDevice() {
+    private fun sendKeepAlive() {
         //
     }
 
-    private fun onLoginDeviceAck() {
-        //
-    }
 
 }

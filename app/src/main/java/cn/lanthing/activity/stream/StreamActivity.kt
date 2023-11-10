@@ -1,4 +1,4 @@
-package cn.lanthing.stream
+package cn.lanthing.activity.stream
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
