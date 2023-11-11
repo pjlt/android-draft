@@ -81,6 +81,7 @@ fun MainPage(connect: (deviceID: Long, accessCode: String) -> Unit) {
                     value = accessCode,
                     onValueChange = {
                         Log.d("MainUI", "it is $it")
+                        // isLetterOrDigit会把汉字也包含进来
                         var it2 = it.filter { c -> c.isDigit() || c.isUpperCase() || c.isLowerCase() }.lowercase()
                         Log.d("MainUI", "it2 is $it2")
                         if (it2.length > 6) {
