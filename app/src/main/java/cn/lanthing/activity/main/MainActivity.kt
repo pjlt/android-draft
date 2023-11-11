@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package cn.lanthing.activity.main
 
 import android.app.Activity
@@ -12,7 +10,6 @@ import android.os.Looper
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.integerResource
 import cn.lanthing.R
@@ -63,9 +60,9 @@ oyi3B43njTOQ5yOf+1CceWxG1bQVs5ZufpsMljq4Ui0/1lvh+wjChP4kqKOJ2qxq
 4RgqsahDYVvTH9w7jXbyLeiNdd8XM2w9U/t7y0Ff/9yi0GE44Za4rF2LN9d11TPA
 mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
 emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
------END CERTIFICATE-----""";
-    private val kHost: String = "192.168.31.121";
-    private val kPort: Int = 9876;
+-----END CERTIFICATE-----"""
+    private val kHost: String = "192.168.31.121"
+    private val kPort: Int = 9876
     private var deviceID: Long = 0 // 只做主控，这个ID是不显示给用户的
     private var deviceCookie: String = ""
     private var settings: SharedPreferences? = null
@@ -92,7 +89,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
             return
         }
         deviceID = settings?.getLong("device_id", 0L) ?: 0
-        socketClient.connect();
+        socketClient.connect()
         setContent {
             // 没法移动到非Compose函数去
             versionMajor = integerResource(id = R.integer.version_major)
@@ -112,7 +109,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
             .setAccessToken(accessCode)
             .setConnType(ConnectionTypeProto.ConnectionType.Control)
         if (cookie != null) {
-            msg.setCookie(cookie)
+            msg.cookie = cookie
         }
         val params = StreamingParams.newBuilder()
             .setEnableDriverInput(false)
@@ -122,7 +119,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
             .setVideoHeight(1080)
             .addVideoCodecs(VideoCodecType.HEVC)
             .addVideoCodecs(VideoCodecType.AVC)
-        msg.setStreamingParams(params.build())
+        msg.streamingParams = params.build()
         socketClient.sendMessage(LtProto.RequestConnection.ID, msg.build())
         Handler(Looper.getMainLooper()).postDelayed({
             if (requestFlying) {
@@ -145,7 +142,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
         if (deviceID != 0L) {
             loginDevice()
         } else {
-            allocateDeviceID();
+            allocateDeviceID()
         }
     }
 
@@ -181,7 +178,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
                 .setVersionMajor(versionMajor)
                 .setVersionMinor(versionMinor)
                 .setVersionPatch(versionPatch)
-                .build();
+                .build()
         msg ?: return
         socketClient.sendMessage(LtProto.LoginDevice.ID, msg)
     }
@@ -250,14 +247,14 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
     }
 
     private fun allocateDeviceID() {
-        val msg = AllocateDeviceID.newBuilder().build();
+        val msg = AllocateDeviceID.newBuilder().build()
         msg ?: return
         socketClient.sendMessage(LtProto.AllocateDeviceID.ID, msg)
     }
 
     private fun onAllocateDeviceIDAck(msg: AllocateDeviceIDAck) {
         val editor = settings?.edit() ?: return
-        deviceCookie = settings?.getString("device_cookie", "") ?: "";
+        deviceCookie = settings?.getString("device_cookie", "") ?: ""
         if (deviceCookie.isEmpty()) {
             Log.e("main", "Received AllocateDeviceIDAck with empty device_cookie")
         } else {

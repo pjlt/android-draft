@@ -30,13 +30,16 @@ import androidx.compose.ui.unit.dp
 import cn.lanthing.R
 import cn.lanthing.ui.theme.AppTheme
 
+
+// 用Jetpack Compose而不是View那套，是为了将来平稳过渡到Compose Multiplatform UI，进而支持iOS
+
 @Composable
 fun Logging() {
     AppTheme {
         Surface {
             Column(modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center
-            , horizontalAlignment = Alignment.CenterHorizontally) {
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally) {
                 LinearProgressIndicator(
                     modifier = Modifier.width(128.dp),
                 )
