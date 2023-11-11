@@ -35,6 +35,14 @@ class SocketClient(
 
     private var channel: Channel? = null
 
+    init {
+        val msgTypes = ArrayList<LtCodec.MsgType>()
+        for (msgType in LtProto.values()) {
+            msgTypes.add(LtCodec.MsgType(msgType.ID, msgType.className))
+        }
+        LtCodec.initialize(msgTypes)
+    }
+
     @Throws(Exception::class)
     override fun channelActive(ctx: ChannelHandlerContext) {
         channel = ctx.channel()
@@ -80,7 +88,7 @@ class SocketClient(
                     val sslEngine = sslContext.newEngine(ch.alloc())
                     sslEngine.useClientMode = true
                     val sslHandler = SslHandler(sslEngine)
-                    ch.pipeline().addFirst("ssl", sslHandler)
+                    //ch.pipeline().addFirst("ssl", sslHandler)
                     ch.pipeline().addLast("protocol", Protocol())
                     ch.pipeline().addLast("message", LtCodec())
                     ch.pipeline().addLast("client", this@SocketClient)

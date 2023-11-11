@@ -1,11 +1,14 @@
 package cn.lanthing.activity.main
 
+import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
@@ -20,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cn.lanthing.R
@@ -29,9 +34,14 @@ import cn.lanthing.ui.theme.AppTheme
 fun Logging() {
     AppTheme {
         Surface {
-            Column {
+            Column(modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center
+            , horizontalAlignment = Alignment.CenterHorizontally) {
                 LinearProgressIndicator(
-                    modifier = Modifier.width(64.dp),
+                    modifier = Modifier.width(128.dp),
+                )
+                Text(
+                    text = stringResource(id = R.string.logging),
                 )
             }
         }
@@ -55,12 +65,29 @@ fun MainPage(connect: (deviceID: Long, accessCode: String) -> Unit) {
                 modifier = Modifier.padding(24.dp)
             ) {
                 OutlinedTextField(
-                    value = " ",
-                    onValueChange = { deviceID = it.toLong() },
-                    label = { Text(stringResource(R.string.device_id)) })
+                    value = if (deviceID == 0L) "" else deviceID.toString(),
+                    onValueChange = {
+                        var it2 = it.filter { c -> c.isDigit() }
+                        if (it2.length > 9) {
+                            it2 = it2.substring(0, 9)
+                        }
+                        deviceID = if (it2.isEmpty()) 0L else it2.toLong()
+
+                    },
+                    label = { Text(stringResource(R.string.device_id)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
                 OutlinedTextField(
-                    value = " ",
-                    onValueChange = { accessCode = it },
+                    value = accessCode,
+                    onValueChange = {
+                        Log.d("MainUI", "it is $it")
+                        var it2 = it.filter { c -> c.isDigit() || c.isUpperCase() || c.isLowerCase() }.lowercase()
+                        Log.d("MainUI", "it2 is $it2")
+                        if (it2.length > 6) {
+                            it2 = it2.substring(0, 6)
+                        }
+                        accessCode = it2
+                    },
                     label = { Text(stringResource(R.string.access_code)) })
                 Button(
                     onClick = { connect(deviceID, accessCode) },
@@ -105,8 +132,10 @@ fun ErrorMessage(errCode: Int, back: () -> Unit) {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun MainPagePreview() {
-    MainPage { _, _ -> {
-    }}
+    MainPage { _, _ ->
+        {
+        }
+    }
 }
 
 @Preview(showBackground = true, showSystemUi = true)

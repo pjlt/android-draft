@@ -64,8 +64,8 @@ oyi3B43njTOQ5yOf+1CceWxG1bQVs5ZufpsMljq4Ui0/1lvh+wjChP4kqKOJ2qxq
 mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
 emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----""";
-    private val kHost: String = "lanthing.net";
-    private val kPort: Int = 44898;
+    private val kHost: String = "192.168.31.121";
+    private val kPort: Int = 9876;
     private var deviceID: Long = 0 // 只做主控，这个ID是不显示给用户的
     private var deviceCookie: String = ""
     private var settings: SharedPreferences? = null
