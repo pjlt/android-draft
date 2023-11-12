@@ -46,6 +46,14 @@ class LtClient(
         onDisconnected = this::onSignalingDisconnected,
         onMessage = this::onSignalingNetMessage)
 
+    private var nativeClient: Long = 0
+
+    init {
+        nativeClient = createNativeClient(
+            clientID, roomID, token, p2pUsername, p2pPassword, signalingAddress, signalingPort, codecType, audioChannels, audioFreq, reflexServers
+        )
+    }
+
 
     // 对应lanthing-pc ClientSession::start()
     fun connect() {
@@ -54,7 +62,10 @@ class LtClient(
 
     // 对应lanthing-pc Client::onPlatformExit()
     fun stop() {
-        //
+        if (nativeClient != 0L) {
+            destroyNativeClient(nativeClient)
+            nativeClient = 0L
+        }
     }
 
     private fun onSignalingConnected() {
@@ -66,7 +77,8 @@ class LtClient(
     }
 
     private fun onSignalingDisconnected() {
-        //
+        Log.e("ltmsdk", "Signaling disconnected")
+        stop()
     }
 
     private fun onSignalingNetMessage(msg: LtMessage) {
@@ -88,7 +100,8 @@ class LtClient(
             return
         }
         Log.i("ltmsdk", "Join room success")
-        //初始化rtc
+        val success = nativeStart(nativeClient)
+        // TODO: error handling
     }
 
     private fun onSignalingMessage(msg: SignalingMessage) {
@@ -100,5 +113,11 @@ class LtClient(
     }
 
 
-    private external fun nativeInitRtc(): Boolean
+    private external fun createNativeClient(clientID: String, roomID: String, token: String,
+                                            p2pUsername: String, p2pPassword: String, signalingAddress: String,
+                                            signalingPort: Int, codecType: String, audioChannels: Int,
+                                            audioFreq: Int, reflexServers: List<String>): Long
+
+    private external fun destroyNativeClient(cli: Long)
+    private external fun nativeStart(cli: Long): Boolean
 }
