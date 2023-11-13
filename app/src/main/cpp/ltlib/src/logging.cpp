@@ -28,59 +28,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <map>
 
-#include <cstdint>
-#include <memory>
-#include <vector>
+#include <ltlib/logging.h>
 
-#include <transport/transport.h>
+namespace {
+int8_t levels[ANDROID_LOG_SILENT + 1] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
+}
 
-namespace lt {
+namespace ltlib {
 
-class AudioPlayer {
-public:
-    struct Params {
-        AudioCodecType type;
-        uint32_t frames_per_second;
-        uint32_t channels;
-    };
+LogCapture::LogCapture(const char* file, const int line, const char* function,
+                       const android_LogPriority& level)
+    : _file{file}
+    , _line{line}
+    , _function{function}
+    , _level{level} {}
 
-public:
-    static std::unique_ptr<AudioPlayer> create(const Params& params);
+LogCapture::~LogCapture() {
+    // TODO: 进一步可以用上_file _line _function
+    __android_log_write(_level, "ltmsdk", _stream.str().c_str());
+}
 
-    virtual ~AudioPlayer();
+bool logLevel(const android_LogPriority& level) {
+    return levels[level] != 0;
+}
 
-    void submit(const void* data, uint32_t size);
+void disableLogLevel(const android_LogPriority& level) {
+    levels[level] = 0;
+}
 
-protected:
-    AudioPlayer(const Params& params);
+void enableLogLevel(const android_LogPriority& level) {
+    levels[level] = 1;
+}
 
-    virtual bool initPlatform() = 0;
-
-    virtual bool play(const void* data, uint32_t size) = 0;
-
-    uint32_t framesPerSec() const;
-
-    uint32_t framesPer10ms() const;
-
-    uint32_t channels() const;
-
-private:
-    bool init();
-
-    bool initDecoder();
-
-    bool needDecode() const;
-
-    int32_t decode(const void* data, uint32_t size);
-
-private:
-    const AudioCodecType type_;
-    void* opus_decoder_ = nullptr;
-    uint32_t frames_per_sec_;
-    uint32_t channels_;
-    std::vector<uint8_t> buffer_;
-};
-
-} // namespace lt
+} // namespace ltlib

@@ -4,8 +4,13 @@ project(ltlib)
 
 add_library(${PROJECT_NAME} STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ltlib/logging.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ltlib/ltlib.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ltlib/pragma_warning.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ltlib/threads.h
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ltlib/times.h
 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/logging.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/threads.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/times.cpp
 )
 

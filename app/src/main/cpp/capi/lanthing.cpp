@@ -35,6 +35,7 @@
 #include <jni.h>
 
 #include <client/native_client.h>
+#include <ltlib/threads.h>
 
 namespace {
     std::string jStr2Std(JNIEnv *env, jstring jstr) {
@@ -57,6 +58,7 @@ Java_cn_lanthing_ltmsdk_LtClient_createNativeClient(JNIEnv *env, jobject thiz, j
                                                     jstring signaling_address, jint signaling_port,
                                                     jstring codec_type, jint audio_channels,
                                                     jint audio_freq, jobject reflex_servers) {
+    ltlib::ThreadWatcher::instance()->disableCrashOnTimeout();
     jclass cList = env->FindClass("java/util/List");
     jmethodID mSize = env->GetMethodID(cList, "size", "()I");
     jmethodID mGet = env->GetMethodID(cList, "get", "(I)Ljava/lang/Object;");

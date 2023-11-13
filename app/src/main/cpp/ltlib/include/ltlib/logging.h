@@ -30,6 +30,9 @@
 
 #pragma once
 
+#include <cinttypes>
+#include <sstream>
+
 #include <android/log.h>
 
 #define DEBUG ANDROID_LOG_DEBUG
@@ -38,4 +41,44 @@
 #define ERR ANDROID_LOG_ERROR
 #define FATAL ANDROID_LOG_FATAL
 
+namespace ltlib {
+
+bool logLevel(const android_LogPriority& level);
+void disableLogLevel(const android_LogPriority& level);
+void enableLogLevel(const android_LogPriority& level);
+
+struct LogCapture {
+    LogCapture(const char* file, const int line, const char* function,
+               const android_LogPriority& level);
+    ~LogCapture();
+    std::ostringstream &stream() {
+        return _stream;
+    }
+private:
+    std::ostringstream _stream;
+    const char* _file;
+    const int _line;
+    const char* _function;
+    const android_LogPriority _level;
+};
+
+} // namespace ltlib
+
 #define LOGF(level, ...) __android_log_print(level, "ltmsdk", __VA_ARGS__)
+
+#if defined(_MSC_VER) && (defined(WINDOWS_FUNCSIG)) // Microsoft
+#define G3LOG_PRETTY_FUNCTION __FUNCSIG__
+#elif defined(__GNUC__) && defined(PRETTY_FUNCTION) // GCC compatible
+#define G3LOG_PRETTY_FUNCTION __PRETTY_FUNCTION__
+#else
+#define G3LOG_PRETTY_FUNCTION __FUNCTION__
+#endif
+
+#define INTERNAL_LOG_MESSAGE(level)                                                                \
+    ltlib::LogCapture(__FILE__, __LINE__, static_cast<const char*>(G3LOG_PRETTY_FUNCTION), level)
+
+#define LOG(level)                                                                                 \
+    if (!ltlib::logLevel(level)) {                                                                        \
+    }                                                                                              \
+    else                                                                                           \
+        INTERNAL_LOG_MESSAGE(level).stream()

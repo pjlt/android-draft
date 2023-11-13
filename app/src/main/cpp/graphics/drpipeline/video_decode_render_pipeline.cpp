@@ -37,18 +37,14 @@
 #include <tuple>
 
 #include <ltlib/logging.h>
-#define SDL_MAIN_HANDLED
-#include <SDL.h>
-#include <SDL_syswm.h>
 
-#include <ltproto/ltproto.h>
-#include <ltproto/worker2service/reconfigure_video_encoder.pb.h>
+//#include <ltproto/ltproto.h>
+//#include <ltproto/worker2service/reconfigure_video_encoder.pb.h>
 
 #include <ltlib/threads.h>
 #include <ltlib/times.h>
 
 #include "ct_smoother.h"
-#include "gpu_capability.h"
 #include <graphics/decoder/video_decoder.h>
 #include <graphics/drpipeline/video_statistics.h>
 #include <graphics/renderer/video_renderer.h>
@@ -86,7 +82,7 @@ private:
                        std::chrono::microseconds max_delay);
     bool waitForRender(std::chrono::microseconds ms);
     void onStat();
-    void onUserSetBitrate(uint32_t bps);
+    //void onUserSetBitrate(uint32_t bps);
     std::tuple<int32_t, float, float> getCursorInfo();
     bool isAbsoluteMouse();
 
@@ -97,7 +93,8 @@ private:
     const lt::VideoCodecType codec_type_;
     std::function<void(uint32_t, std::shared_ptr<google::protobuf::MessageLite>, bool)>
         send_message_to_host_;
-    PcSdl* sdl_;
+    // NOTE: 安卓在video模块上不使用SDL
+    //PcSdl* sdl_;
     void* window_;
 
     std::atomic<bool> request_i_frame_ = false;
@@ -111,7 +108,6 @@ private:
     std::mutex render_mtx_;
     std::condition_variable waiting_for_render_;
 
-    GpuInfo gpu_info_;
     std::unique_ptr<VideoRenderer> video_renderer_;
     std::unique_ptr<VideoDecoder> video_decoder_;
     CTSmoother smoother_;
@@ -143,9 +139,10 @@ VDRPipeline::VDRPipeline(const VideoDecodeRenderPipeline::Params& params)
     , screen_refresh_rate_{params.screen_refresh_rate}
     , codec_type_{params.codec_type}
     , send_message_to_host_{params.send_message_to_host}
-    , sdl_{params.sdl}
+    //, sdl_{params.sdl}
     , statistics_{new VideoStatistics} {
-    window_ = params.sdl->window();
+    // FIXME: 传递真正的window_
+    //window_ = params.sdl->window();
 }
 
 VDRPipeline::~VDRPipeline() {
@@ -193,6 +190,9 @@ bool VDRPipeline::init() {
     decode_params.va_type = VaType::D3D11;
 #elif LT_LINUX
     decode_params.va_type = VaType::VAAPI;
+#elif LT_ANDROID
+    // 不用ffmpeg，这个VaType不管用
+    //decode_params.va_type = VaType::;
 #else
 #error unknown platform
 #endif
@@ -211,8 +211,7 @@ bool VDRPipeline::init() {
     widgets_params.window = window_;
     widgets_params.video_width = width_;
     widgets_params.video_height = height_;
-    widgets_params.set_bitrate =
-        std::bind(&VDRPipeline::onUserSetBitrate, this, std::placeholders::_1);
+    widgets_params.set_bitrate = [](uint32_t) {};
     widgets_ = WidgetsManager::create(widgets_params);
     if (widgets_ == nullptr) {
         return false;
@@ -225,8 +224,8 @@ bool VDRPipeline::init() {
     render_thread_ = ltlib::BlockingThread::create(
         "video_render",
         [this](const std::function<void()>& i_am_alive) { renderLoop(i_am_alive); });
-    stat_thread_ = ltlib::TaskThread::create("stat_task");
-    stat_thread_->post_delay(ltlib::TimeDelta{1'000'00}, std::bind(&VDRPipeline::onStat, this));
+//    stat_thread_ = ltlib::TaskThread::create("stat_task");
+//    stat_thread_->post_delay(ltlib::TimeDelta{1'000'00}, std::bind(&VDRPipeline::onStat, this));
     return true;
 }
 
@@ -367,24 +366,12 @@ bool VDRPipeline::waitForRender(std::chrono::microseconds ms) {
 void VDRPipeline::onStat() {
     auto stat = statistics_->getStat();
     if (show_statistics_) {
-        widgets_->updateStatistics(stat);
+        //widgets_->updateStatistics(stat);
     }
     if (show_statistics_) {
-        widgets_->updateStatus((uint32_t)rtt_ / 1000, (uint32_t)stat.render_video_fps, loss_rate_);
+        //widgets_->updateStatus((uint32_t)rtt_ / 1000, (uint32_t)stat.render_video_fps, loss_rate_);
     }
     stat_thread_->post_delay(ltlib::TimeDelta{1'000'00}, std::bind(&VDRPipeline::onStat, this));
-}
-
-void VDRPipeline::onUserSetBitrate(uint32_t bps) {
-    auto msg = std::make_shared<ltproto::worker2service::ReconfigureVideoEncoder>();
-    if (bps == 0) {
-        msg->set_trigger(ltproto::worker2service::ReconfigureVideoEncoder_Trigger_TurnOnAuto);
-    }
-    else {
-        msg->set_trigger(ltproto::worker2service::ReconfigureVideoEncoder_Trigger_TurnOffAuto);
-        msg->set_bitrate_bps(bps);
-    }
-    send_message_to_host_(ltproto::id(msg), msg, true);
 }
 
 std::tuple<int32_t, float, float> VDRPipeline::getCursorInfo() {
@@ -452,8 +439,7 @@ VideoDecodeRenderPipeline::Params::Params(
     , send_message_to_host(send_message) {}
 
 bool VideoDecodeRenderPipeline::Params::validate() const {
-    if (codec_type == lt::VideoCodecType::Unknown || sdl == nullptr ||
-        send_message_to_host == nullptr) {
+    if (codec_type == lt::VideoCodecType::Unknown || send_message_to_host == nullptr) {
         return false;
     }
     else {

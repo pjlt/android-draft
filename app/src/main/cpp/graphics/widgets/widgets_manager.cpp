@@ -28,59 +28,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include <cstdint>
-#include <memory>
-#include <vector>
-
-#include <transport/transport.h>
+#include "widgets_manager.h"
 
 namespace lt {
 
-class AudioPlayer {
-public:
-    struct Params {
-        AudioCodecType type;
-        uint32_t frames_per_second;
-        uint32_t channels;
-    };
+std::unique_ptr<WidgetsManager> WidgetsManager::create(const WidgetsManager::Params& params) {
+    return std::unique_ptr<WidgetsManager>(new WidgetsManager{params});
+}
 
-public:
-    static std::unique_ptr<AudioPlayer> create(const Params& params);
+WidgetsManager::~WidgetsManager() {}
 
-    virtual ~AudioPlayer();
+void WidgetsManager::render() {}
 
-    void submit(const void* data, uint32_t size);
+void WidgetsManager::reset() {}
 
-protected:
-    AudioPlayer(const Params& params);
+void WidgetsManager::enableStatus() {}
 
-    virtual bool initPlatform() = 0;
+void WidgetsManager::disableStatus() {}
+void WidgetsManager::enableStatistics() {}
+void WidgetsManager::disableStatistics() {}
+void WidgetsManager::setTaskBarPos(uint32_t direction, uint32_t left, uint32_t right, uint32_t top,
+                                   uint32_t bottom) {
+    (void)direction;
+    (void)left;
+    (void)right;
+    (void)top;
+    (void)bottom;
+}
+void WidgetsManager::updateStatus(uint32_t rtt_ms, uint32_t fps, float loss) {
+    (void)rtt_ms;
+    (void)fps;
+    (void)loss;
+}
 
-    virtual bool play(const void* data, uint32_t size) = 0;
+void WidgetsManager::updateStatistics(const VideoStatistics::Stat& statistics) {
+    (void)statistics;
+}
 
-    uint32_t framesPerSec() const;
-
-    uint32_t framesPer10ms() const;
-
-    uint32_t channels() const;
-
-private:
-    bool init();
-
-    bool initDecoder();
-
-    bool needDecode() const;
-
-    int32_t decode(const void* data, uint32_t size);
-
-private:
-    const AudioCodecType type_;
-    void* opus_decoder_ = nullptr;
-    uint32_t frames_per_sec_;
-    uint32_t channels_;
-    std::vector<uint8_t> buffer_;
-};
-
+WidgetsManager::WidgetsManager(const WidgetsManager::Params& params) {
+    (void)params;
+}
 } // namespace lt
