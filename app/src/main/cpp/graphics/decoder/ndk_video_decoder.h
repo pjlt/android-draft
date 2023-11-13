@@ -27,62 +27,32 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#pragma once
-#include <graphics/renderer/video_renderer.h>
 
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#include <android/native_window.h>
+#pragma once
+#include <graphics/decoder/video_decoder.h>
+
+#include <list>
+#include <memory>
+
+#include <graphics/types.h>
 
 namespace lt {
-class AndroidGlPipeline : public VideoRenderer {
-public:
-    struct Params {
-        void* window;
-        uint32_t width;
-        uint32_t height;
-    };
 
+class NdkVideoDecoder : public VideoDecoder {
 public:
-    AndroidGlPipeline(const Params& params);
-    ~AndroidGlPipeline() override;
+    NdkVideoDecoder(const Params& params);
+    ~NdkVideoDecoder() override;
+
     bool init();
-    bool bindTextures(const std::vector<void*>& textures) override;
-    RenderResult render(int64_t frame) override;
-    void updateCursor(int32_t cursor_id, float x, float y, bool visible) override;
-    void switchMouseMode(bool absolute) override;
-    void resetRenderTarget() override;
-    bool present() override;
-    bool waitForPipeline(int64_t max_wait_ms) override;
-    void* hwDevice() override;
-    void* hwContext() override;
-    uint32_t displayWidth() override;
-    uint32_t displayHeight() override;
+    DecodedFrame decode(const uint8_t* data, uint32_t size) override;
+    std::vector<void*> textures() override;
 
 private:
-    bool loadFuncs();
-    bool initEGL();
-    bool initOpenGLES();
+    bool init2(const void* config, const void* codec);
 
 private:
-    ANativeWindow* a_native_window_;
-    uint32_t video_width_;
-    uint32_t video_height_;
-    uint32_t window_width_;
-    uint32_t window_height_;
-
-    EGLContext egl_context_ = nullptr;
-    EGLDisplay egl_display_ = nullptr;
-    EGLSurface egl_surface_ = nullptr;
-    PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR_ = nullptr;
-    PFNEGLDESTROYIMAGEKHRPROC eglDestroyImageKHR_ = nullptr;
-    PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES_ = nullptr;
-    PFNGLGENVERTEXARRAYSOESPROC glGenVertexArraysOES_ = nullptr;
-    PFNGLBINDVERTEXARRAYOESPROC glBindVertexArrayOES_ = nullptr;
-    GLuint shader_ = 0;
-    GLuint textures_[2] = {0};
+    void* hw_dev_;
+    void* hw_ctx_;
 };
 
 } // namespace lt

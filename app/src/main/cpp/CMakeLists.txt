@@ -16,8 +16,12 @@ add_library(${PROJECT_NAME} SHARED
 
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/decoder/video_decoder.h
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/decoder/video_decoder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/decoder/ndk_video_decoder.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/decoder/ndk_video_decoder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/video_renderer.h
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/video_renderer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/android_gl_pipeline.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/android_gl_pipeline.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/drpipeline/ct_smoother.h
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/drpipeline/ct_smoother.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/drpipeline/video_decode_render_pipeline.h
