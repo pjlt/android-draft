@@ -30,51 +30,12 @@
 
 #include "video_renderer.h"
 
-#if LT_WINDOWS
-#include "d3d11_pipeline.h"
-#elif LT_LINUX
-#include "va_gl_pipeline.h"
-#else
-#endif // LT_WINDOWS, LT_LINUX
-
-#include <SDL.h>
-#include <SDL_syswm.h>
+#include "android_gl_pipeline.h"
 
 namespace lt {
 
 std::unique_ptr<VideoRenderer> lt::VideoRenderer::create(const Params& params) {
-    SDL_Window* sdl_window = reinterpret_cast<SDL_Window*>(params.window);
-    SDL_SysWMinfo info{};
-    SDL_VERSION(&info.version);
-    SDL_GetWindowWMInfo(sdl_window, &info);
-#if LT_WINDOWS
-    D3D11Pipeline::Params d3d11_params{};
-    d3d11_params.window = info.info.win.window;
-    d3d11_params.luid = params.device;
-    d3d11_params.widht = params.video_width;
-    d3d11_params.height = params.video_height;
-    d3d11_params.align = params.align;
-    auto renderer = std::make_unique<D3D11Pipeline>(d3d11_params);
-    if (!renderer->init()) {
-        return nullptr;
-    }
-    return renderer;
-#elif LT_LINUX
-    VaGlPipeline::Params va_gl_params{};
-    va_gl_params.card = static_cast<uint32_t>(params.device);
-    va_gl_params.window = sdl_window;
-    va_gl_params.width = params.video_width;
-    va_gl_params.height = params.video_height;
-    va_gl_params.align = params.align;
-    auto renderer = std::make_unique<VaGlPipeline>(va_gl_params);
-    if (!renderer->init()) {
-        return nullptr;
-    }
-    return renderer;
-#else
-    (void)params;
     return nullptr;
-#endif //
 }
 
 } // namespace lt

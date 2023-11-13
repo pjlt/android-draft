@@ -30,16 +30,11 @@
 
 #include "video_decoder.h"
 
-#include "ffmpeg_hard_decoder.h"
 
 namespace lt {
 
 std::unique_ptr<VideoDecoder> VideoDecoder::create(const Params& params) {
-    auto decoder = std::make_unique<FFmpegHardDecoder>(params);
-    if (!decoder->init()) {
-        return nullptr;
-    }
-    return decoder;
+    return nullptr;
 }
 
 VideoDecoder::VideoDecoder(const Params& params)

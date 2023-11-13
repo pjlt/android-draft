@@ -28,32 +28,40 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "native_client.h"
+#pragma once
+#include <audio/player/audio_player.h>
 
-#include <ltlib/logging.h>
+#include <queue>
+#include <vector>
+#include <mutex>
+#include <condition_variable>
 
-bool LtNativeClient::Params::validate() const {
-    if (client_id.empty() || room_id.empty() || token.empty() || p2p_username.empty()
-        || p2p_password.empty() || signaling_address.empty()) {
-        return false;
-    }
-    if (signaling_port <= 0 || signaling_port > 65535) {
-        return false;
-    }
-    if (codec != "avc" && codec != "hevc") {
-        return false;
-    }
-    if (audio_channels <= 0 || audio_freq <= 0) {
-        return false;
-    }
-    return true;
-}
+#include <SLES/OpenSLES.h>
+#include <SLES/OpenSLES_Android.h>
 
-LtNativeClient::LtNativeClient(const Params &params) {
-    //
-}
+namespace lt {
 
-bool LtNativeClient::start() {
-    LOGF(INFO, "TEST %d", 9);
-    return false;
-}
+class SLAudioPlayer : public AudioPlayer {
+public:
+    SLAudioPlayer(const Params& params);
+    ~SLAudioPlayer() override;
+    bool initPlatform() override;
+    bool play(const void* data, uint32_t size) override;
+
+private:
+    static void slCallback(SLAndroidSimpleBufferQueueItf bq, void *context);
+    void doPlay();
+
+private:
+    SLObjectItf engine_obj_ = nullptr;
+    SLEngineItf engine_ = nullptr;
+    SLObjectItf player_obj_ = nullptr;
+    SLPlayItf player_ = nullptr;
+    SLObjectItf mixer_ = nullptr;
+    SLAndroidSimpleBufferQueueItf queue_ = nullptr;
+    std::deque<std::vector<uint8_t>> buffer_;
+    std::mutex mutex_;
+
+};
+
+} // namespace lt

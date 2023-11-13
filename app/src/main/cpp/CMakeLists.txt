@@ -2,22 +2,35 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project(lanthing)
 
+add_subdirectory(ltlib)
+
 add_library(${PROJECT_NAME} SHARED
-        capi/lanthing.cpp
-        client/native_client.h
-        client/native_client.cpp
-        graphics/decoder/video_decoder.h
-        graphics/decoder/video_decoder.cp
-        graphics/renderer/video_renderer.h
-        graphics/renderer/video_renderer.cpp
-        graphics/drpipeline/video_decode_render_pipeline.h
-        graphics/drpipeline/video_decode_render_pipeline.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/capi/lanthing.cpp
+
+        ${CMAKE_CURRENT_SOURCE_DIR}/client/native_client.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/client/native_client.cpp
+
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/decoder/video_decoder.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/decoder/video_decoder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/video_renderer.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/video_renderer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/drpipeline/video_decode_render_pipeline.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/drpipeline/video_decode_render_pipeline.cpp
+
+        ${CMAKE_CURRENT_SOURCE_DIR}/audio/player/audio_player.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/audio/player/audio_player.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/audio/player/sl_audio_player.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/audio/player/sl_audio_player.cpp
+
+        ${CMAKE_CURRENT_SOURCE_DIR}/transport/transport.h
 )
 
 target_link_libraries(${PROJECT_NAME}
         android
         log
+        OpenSLES
         c++_shared
+        ltlib
 )
 
 target_include_directories(${PROJECT_NAME}

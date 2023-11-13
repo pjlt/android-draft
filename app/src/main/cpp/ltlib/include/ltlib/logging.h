@@ -28,32 +28,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "native_client.h"
+#pragma once
 
-#include <ltlib/logging.h>
+#include <android/log.h>
 
-bool LtNativeClient::Params::validate() const {
-    if (client_id.empty() || room_id.empty() || token.empty() || p2p_username.empty()
-        || p2p_password.empty() || signaling_address.empty()) {
-        return false;
-    }
-    if (signaling_port <= 0 || signaling_port > 65535) {
-        return false;
-    }
-    if (codec != "avc" && codec != "hevc") {
-        return false;
-    }
-    if (audio_channels <= 0 || audio_freq <= 0) {
-        return false;
-    }
-    return true;
-}
+#define DEBUG ANDROID_LOG_DEBUG
+#define INFO ANDROID_LOG_INFO
+#define WARNING ANDROID_LOG_WARN
+#define ERR ANDROID_LOG_ERROR
+#define FATAL ANDROID_LOG_FATAL
 
-LtNativeClient::LtNativeClient(const Params &params) {
-    //
-}
-
-bool LtNativeClient::start() {
-    LOGF(INFO, "TEST %d", 9);
-    return false;
-}
+#define LOGF(level, ...) __android_log_print(level, "ltmsdk", __VA_ARGS__)
