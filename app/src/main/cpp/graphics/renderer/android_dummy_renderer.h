@@ -27,36 +27,45 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #pragma once
-#include <graphics/decoder/video_decoder.h>
-
-#include <vector>
-#include <memory>
+#include <graphics/renderer/video_renderer.h>
 
 #include <android/native_window.h>
 #include <media/NdkMediaCodec.h>
 
-#include <graphics/types.h>
-
 namespace lt {
 
-class NdkVideoDecoder : public VideoDecoder {
+class AndroidDummyRenderer : public VideoRenderer {
 public:
-    NdkVideoDecoder(const Params& params);
-    ~NdkVideoDecoder() override;
+    struct Params {
+        void* window;
+        uint32_t width;
+        uint32_t height;
+    };
 
+public:
+    AndroidDummyRenderer(const Params& params);
+    ~AndroidDummyRenderer() override;
     bool init();
-    DecodedFrame decode(const uint8_t* data, uint32_t size) override;
-    std::vector<void*> textures() override;
-
-private:
-    DecodeStatus pushFrame(const uint8_t* data, uint32_t size);
-    DecodedFrame pullFrame();
+    bool bindTextures(const std::vector<void*>& textures) override;
+    RenderResult render(int64_t frame) override;
+    void updateCursor(int32_t cursor_id, float x, float y, bool visible) override;
+    void switchMouseMode(bool absolute) override;
+    void resetRenderTarget() override;
+    bool present() override;
+    bool waitForPipeline(int64_t max_wait_ms) override;
+    void* hwDevice() override;
+    void* hwContext() override;
+    uint32_t displayWidth() override;
+    uint32_t displayHeight() override;
 
 private:
     ANativeWindow* a_native_window_;
     AMediaCodec* media_codec_ = nullptr;
+    uint32_t video_width_ = 0;
+    uint32_t video_height_ = 0;
+    uint32_t window_width_;
+    uint32_t window_height_;
 };
 
 } // namespace lt

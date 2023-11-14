@@ -22,6 +22,8 @@ add_library(${PROJECT_NAME} SHARED
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/video_renderer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/android_gl_pipeline.h
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/android_gl_pipeline.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/android_dummy_renderer.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/graphics/renderer/android_dummy_renderer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/drpipeline/ct_smoother.h
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/drpipeline/ct_smoother.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/drpipeline/video_decode_render_pipeline.h
@@ -43,6 +45,9 @@ target_link_libraries(${PROJECT_NAME}
         android
         log
         OpenSLES
+        mediandk
+        GLESv2
+        EGL
         c++_shared
         ltlib
 )

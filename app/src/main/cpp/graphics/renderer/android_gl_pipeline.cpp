@@ -193,7 +193,7 @@ bool AndroidGlPipeline::initEGL() {
         LOG(ERR) << "eglGetDisplay failed";
         return false;
     }
-    if (!eglInitialize(egl_display_, NULL, NULL)) {
+    if (!eglInitialize(egl_display_, nullptr, nullptr)) {
         LOG(ERR) << "eglInitialize failed";
         return false;
     }

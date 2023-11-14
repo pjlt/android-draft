@@ -14,7 +14,7 @@ import com.google.protobuf.Message
 
 // 1. 尽量让LtClient内部闭环，即尽量少点向App层回调东西
 // 2. 向上回调用onMessage，不用回调函数，方便同步lanthing-pc的代码
-// 3. 将来ltmsdk是要独立曾一个aar/framework的，用同一份代码支持Android和iOS。它的全称是Lanthing Mobile SDK，不是Lanthing Android SDK😄
+// 3. 将来ltmsdk是要独立成一个aar/framework的，用同一份代码支持Android和iOS。它的全称是Lanthing Mobile SDK，不是Lanthing Android SDK😄
 
 // lanthing-pc里所有东西都是C++写的，有rtc、信令、video、audio、input模块，然后这些模块都被一个client对象管理着
 // 到了移动端，信令和input是Kotlin/Java写的，video、audio、rtc是C++写的

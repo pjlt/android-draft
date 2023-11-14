@@ -63,6 +63,8 @@ inline std::string videoFormatToString(Format format) {
 enum class VaType {
     D3D11,
     VAAPI,
+    AndroidGL,
+    AndroidDummy,
 };
 
 } // namespace lt

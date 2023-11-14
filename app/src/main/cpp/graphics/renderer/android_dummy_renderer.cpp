@@ -28,35 +28,69 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-#include <graphics/decoder/video_decoder.h>
+#include "android_dummy_renderer.h"
 
-#include <vector>
-#include <memory>
-
-#include <android/native_window.h>
-#include <media/NdkMediaCodec.h>
-
-#include <graphics/types.h>
+#include <ltlib/logging.h>
 
 namespace lt {
 
-class NdkVideoDecoder : public VideoDecoder {
-public:
-    NdkVideoDecoder(const Params& params);
-    ~NdkVideoDecoder() override;
+AndroidDummyRenderer::AndroidDummyRenderer(const Params& params)
+    : a_native_window_{reinterpret_cast<ANativeWindow*>(params.window)}
+    , video_width_{params.width}
+    , video_height_{params.height} {}
 
-    bool init();
-    DecodedFrame decode(const uint8_t* data, uint32_t size) override;
-    std::vector<void*> textures() override;
+AndroidDummyRenderer::~AndroidDummyRenderer() {}
 
-private:
-    DecodeStatus pushFrame(const uint8_t* data, uint32_t size);
-    DecodedFrame pullFrame();
+bool AndroidDummyRenderer::init() {
+    window_width_ = ANativeWindow_getWidth(a_native_window_);
+    window_height_ = ANativeWindow_getHeight(a_native_window_);
+}
 
-private:
-    ANativeWindow* a_native_window_;
-    AMediaCodec* media_codec_ = nullptr;
-};
+bool AndroidDummyRenderer::bindTextures(const std::vector<void*>& textures) {
+    (void)textures;
+    return true;
+}
+
+VideoRenderer::RenderResult AndroidDummyRenderer::render(int64_t frame) {
+    return RenderResult::Success2;
+}
+
+void AndroidDummyRenderer::updateCursor(int cursor_id, float x, float y, bool visible) {
+    (void)cursor_id;
+    (void)x;
+    (void)y;
+    (void)visible;
+}
+
+void AndroidDummyRenderer::switchMouseMode(bool absolute) {
+    (void)absolute;
+}
+
+void AndroidDummyRenderer::resetRenderTarget() {}
+
+bool AndroidDummyRenderer::present() {
+    return true;
+}
+
+bool AndroidDummyRenderer::waitForPipeline(int64_t max_wait_ms) {
+    (void)max_wait_ms;
+    return true;
+}
+
+void* AndroidDummyRenderer::hwDevice() {
+    return nullptr;
+}
+
+void* AndroidDummyRenderer::hwContext() {
+    return nullptr;
+}
+
+uint32_t AndroidDummyRenderer::displayWidth() {
+    return window_width_;
+}
+
+uint32_t AndroidDummyRenderer::displayHeight() {
+    return window_height_;
+}
 
 } // namespace lt

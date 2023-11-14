@@ -191,8 +191,7 @@ bool VDRPipeline::init() {
 #elif LT_LINUX
     decode_params.va_type = VaType::VAAPI;
 #elif LT_ANDROID
-    // 不用ffmpeg，这个VaType不管用
-    //decode_params.va_type = VaType::;
+    decode_params.va_type = VaType::AndroidDummy;
 #else
 #error unknown platform
 #endif

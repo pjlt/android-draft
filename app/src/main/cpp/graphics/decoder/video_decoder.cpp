@@ -30,11 +30,28 @@
 
 #include "video_decoder.h"
 
+#include <ltlib/logging.h>
+
+#include "ndk_video_decoder.h"
 
 namespace lt {
 
 std::unique_ptr<VideoDecoder> VideoDecoder::create(const Params& params) {
-    return nullptr;
+    if (params.va_type != VaType::AndroidDummy) {
+        LOG(ERR) << "Only support VaType::AndroidDummy";
+        return nullptr;
+    }
+    NdkVideoDecoder::Params ndk_params{};
+    ndk_params.hw_device = params.hw_device;
+    ndk_params.hw_context = params.hw_context;
+    ndk_params.height = params.height;
+    ndk_params.width = params.width;
+    ndk_params.codec_type = params.codec_type;
+    std::unique_ptr<NdkVideoDecoder> decoder {new NdkVideoDecoder(ndk_params)};
+    if (!decoder->init()) {
+        return nullptr;
+    }
+    return decoder;
 }
 
 VideoDecoder::VideoDecoder(const Params& params)
