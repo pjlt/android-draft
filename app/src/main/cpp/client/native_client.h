@@ -33,6 +33,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <memory>
 
 #include <google/protobuf/message_lite.h>
 
@@ -67,13 +68,28 @@ public:
 
 public:
     LtNativeClient(const Params& params);
-
     ~LtNativeClient();
 
     bool start();
+    void switchMouseMode();
 
 private:
+    void postTask(const std::function<void()>& task);
+    void postDelayTask(int64_t delay_ms, const std::function<void()>& task);
+    void checkWorkerTimeout();
+    void syncTime();
+    void tellAppKeepAliveTimeout();
+
+    // transport
     bool initTransport();
+    static void onTpData(void* user_data, const uint8_t* data, uint32_t size, bool is_reliable);
+    static void onTpVideoFrame(void* user_data, const lt::VideoFrame& frame);
+    static void onTpAudioData(void* user_data, const lt::AudioData& audio_data);
+    static void onTpConnected(void* user_data, lt::LinkType link_type);
+    static void onTpConnChanged(void* user_data /*old_conn_info, new_conn_info*/);
+    static void onTpFailed(void* user_data);
+    static void onTpDisconnected(void* user_data);
+    static void onTpSignalingMessage(void* user_data, const char* key, const char* value);
     // 数据通道.
     void dispatchRemoteMessage(uint32_t type,
                                const std::shared_ptr<google::protobuf::MessageLite>& msg);
@@ -81,6 +97,10 @@ private:
     void onKeepAliveAck();
     bool sendMessageToHost(uint32_t type, const std::shared_ptr<google::protobuf::MessageLite>& msg,
                            bool reliable);
+    void onStartTransmissionAck(const std::shared_ptr<google::protobuf::MessageLite>& msg);
+    void onTimeSync(std::shared_ptr<google::protobuf::MessageLite> msg);
+    void onSendSideStat(std::shared_ptr<google::protobuf::MessageLite> msg);
+    void onCursorInfo(std::shared_ptr<google::protobuf::MessageLite> msg);
 
 private:
     std::string auth_token_;
@@ -89,14 +109,19 @@ private:
     VideoDecodeRenderPipeline::Params video_params_;
     AudioPlayer::Params audio_params_{};
     std::vector<std::string> reflex_servers_;
+    std::mutex dr_mutex_;
+    std::unique_ptr<VideoDecodeRenderPipeline> video_pipeline_;
+    std::unique_ptr<AudioPlayer> audio_player_;
     lt::tp::Client* tp_client_ = nullptr;
-    std::unique_ptr<ltlib::TaskThread> hb_thread_;
+    std::unique_ptr<ltlib::TaskThread> thread_;
     bool should_exit_ = true;
     ltlib::TimeSync time_sync_;
     int64_t rtt_ = 0;
     int64_t time_diff_ = 0;
     std::optional<bool> is_p2p_;
     bool absolute_mouse_ = true;
+    bool absolute_mouse_ = true;
+    bool last_w_or_h_is_0_ = false;
     int64_t last_received_keepalive_;
 };
 

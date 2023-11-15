@@ -44,6 +44,7 @@ AndroidDummyRenderer::~AndroidDummyRenderer() {}
 bool AndroidDummyRenderer::init() {
     window_width_ = ANativeWindow_getWidth(a_native_window_);
     window_height_ = ANativeWindow_getHeight(a_native_window_);
+    return true;
 }
 
 bool AndroidDummyRenderer::bindTextures(const std::vector<void*>& textures) {
