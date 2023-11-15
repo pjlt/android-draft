@@ -32,6 +32,17 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <optional>
+
+#include <google/protobuf/message_lite.h>
+
+#include <ltlib/time_sync.h>
+#include <ltlib/threads.h>
+
+#include <audio/player/audio_player.h>
+#include <graphics/drpipeline/video_decode_render_pipeline.h>
+
+namespace lt {
 
 class LtNativeClient {
 public:
@@ -44,17 +55,49 @@ public:
         std::string signaling_address;
         int32_t signaling_port;
         std::string codec;
+        uint32_t width;
+        uint32_t height;
+        uint32_t screen_refresh_rate;
         int32_t audio_channels;
         int32_t audio_freq;
         std::vector<std::string> reflex_servers;
+
         bool validate() const;
     };
+
 public:
     LtNativeClient(const Params& params);
-    ~LtNativeClient() = default;
+
+    ~LtNativeClient();
 
     bool start();
 
 private:
-    ;
+    bool initTransport();
+    // 数据通道.
+    void dispatchRemoteMessage(uint32_t type,
+                               const std::shared_ptr<google::protobuf::MessageLite>& msg);
+    void sendKeepAlive();
+    void onKeepAliveAck();
+    bool sendMessageToHost(uint32_t type, const std::shared_ptr<google::protobuf::MessageLite>& msg,
+                           bool reliable);
+
+private:
+    std::string auth_token_;
+    std::string p2p_username_;
+    std::string p2p_password_;
+    VideoDecodeRenderPipeline::Params video_params_;
+    AudioPlayer::Params audio_params_{};
+    std::vector<std::string> reflex_servers_;
+    lt::tp::Client* tp_client_ = nullptr;
+    std::unique_ptr<ltlib::TaskThread> hb_thread_;
+    bool should_exit_ = true;
+    ltlib::TimeSync time_sync_;
+    int64_t rtt_ = 0;
+    int64_t time_diff_ = 0;
+    std::optional<bool> is_p2p_;
+    bool absolute_mouse_ = true;
+    int64_t last_received_keepalive_;
 };
+
+} // namespace lt

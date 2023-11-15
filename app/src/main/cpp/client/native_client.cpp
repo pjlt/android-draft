@@ -32,9 +32,31 @@
 
 #include <ltlib/logging.h>
 
+namespace {
+
+lt::VideoCodecType to_ltrtc(std::string codec_str) {
+    static const std::string kAVC = "avc";
+    static const std::string kHEVC = "hevc";
+    std::transform(codec_str.begin(), codec_str.end(), codec_str.begin(),
+                   [](char c) -> char { return (char)std::tolower(c); });
+    if (codec_str == kAVC) {
+        return lt::VideoCodecType::H264;
+    }
+    else if (codec_str == kHEVC) {
+        return lt::VideoCodecType::H265;
+    }
+    else {
+        return lt::VideoCodecType::Unknown;
+    }
+}
+
+} // namespace
+
+namespace lt {
+
 bool LtNativeClient::Params::validate() const {
-    if (client_id.empty() || room_id.empty() || token.empty() || p2p_username.empty()
-        || p2p_password.empty() || signaling_address.empty()) {
+    if (client_id.empty() || room_id.empty() || token.empty() || p2p_username.empty() ||
+        p2p_password.empty() || signaling_address.empty()) {
         return false;
     }
     if (signaling_port <= 0 || signaling_port > 65535) {
@@ -49,11 +71,41 @@ bool LtNativeClient::Params::validate() const {
     return true;
 }
 
-LtNativeClient::LtNativeClient(const Params &params) {
-    //
+LtNativeClient::LtNativeClient(const Params& params)
+    : auth_token_{params.token}
+    , p2p_username_{params.p2p_username}
+    , p2p_password_{params.p2p_password}
+    , video_params_{to_ltrtc(params.codec), params.width, params.height, params.screen_refresh_rate,
+                    std::bind(&LtNativeClient::sendMessageToHost, this, std::placeholders::_1,
+                              std::placeholders::_2, std::placeholders::_3)}
+    , audio_params_{AudioCodecType::PCM, static_cast<uint32_t>(params.audio_freq),
+                    static_cast<uint32_t>(params.audio_channels)}
+    , reflex_servers_{params.reflex_servers} {}
+
+LtNativeClient::~LtNativeClient() {
+    // LtNativeClient和lanthing-pc的Client的线程模型是不一样的，析构要小心处理
 }
 
 bool LtNativeClient::start() {
-    LOGF(INFO, "TEST %d", 9);
-    return false;
+    hb_thread_ = ltlib::TaskThread::create("heart_beat");
+    should_exit_ = false;
+    if (!initTransport()) {
+        LOG(INFO) << "Initialize rtc failed";
+        return false;
+    }
+    LOG(INFO) << "Initialize rtc success";
+    return true;
 }
+
+bool LtNativeClient::initTransport() { return true; }
+
+void LtNativeClient::dispatchRemoteMessage(
+    uint32_t type, const std::shared_ptr<google::protobuf::MessageLite>& msg) {}
+
+void LtNativeClient::sendKeepAlive() {}
+void LtNativeClient::onKeepAliveAck() {}
+bool LtNativeClient::sendMessageToHost(uint32_t type,
+                                       const std::shared_ptr<google::protobuf::MessageLite>& msg,
+                                       bool reliable) { return  true;}
+
+} // namespace lt

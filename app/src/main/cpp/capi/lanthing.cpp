@@ -45,8 +45,8 @@ namespace {
         env->ReleaseStringUTFChars(jstr, str);
         return string;
     }
-    LtNativeClient* ncast(jlong ptr) {
-        return reinterpret_cast<LtNativeClient*>(ptr);
+    lt::LtNativeClient* ncast(jlong ptr) {
+        return reinterpret_cast<lt::LtNativeClient*>(ptr);
     }
 } // namespace
 
@@ -71,7 +71,7 @@ Java_cn_lanthing_ltmsdk_LtClient_createNativeClient(JNIEnv *env, jobject thiz, j
         auto strObj = (jstring)env->CallObjectMethod(reflex_servers, mGet, i);
         rflxs.push_back(jStr2Std(env, strObj));
     }
-    LtNativeClient::Params params{};
+    lt::LtNativeClient::Params params{};
     params.client_id = jStr2Std(env, client_id);
     params.room_id = jStr2Std(env, room_id);
     params.token = jStr2Std(env, token);
@@ -86,13 +86,13 @@ Java_cn_lanthing_ltmsdk_LtClient_createNativeClient(JNIEnv *env, jobject thiz, j
     if (!params.validate()) {
         return -1;
     }
-    return reinterpret_cast<jlong>(new LtNativeClient{params});
+    return reinterpret_cast<jlong>(new lt::LtNativeClient{params});
 }
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_cn_lanthing_ltmsdk_LtClient_destroyNativeClient(JNIEnv *env, jobject thiz, jlong cli) {
-    auto obj = reinterpret_cast<LtNativeClient*>(cli);
+    auto obj = reinterpret_cast<lt::LtNativeClient*>(cli);
     delete obj;
 }
 

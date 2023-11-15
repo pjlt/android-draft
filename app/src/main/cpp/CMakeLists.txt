@@ -6,6 +6,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(LT_ANDROID ON)
 add_compile_definitions(LT_ANDROID=1)
 
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
+
+set(protobuf_MODULE_COMPATIBLE ON)
+find_package(absl REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/prebuilt/protobuf/lib/cmake/absl)
+find_package(utf8_range REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/prebuilt/protobuf/lib/cmake/utf8_range)
+find_package(Protobuf REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/prebuilt/protobuf/lib/cmake/protobuf)
+
+add_subdirectory(ltproto)
 add_subdirectory(ltlib)
 add_subdirectory(transport)
 
@@ -50,6 +58,8 @@ target_link_libraries(${PROJECT_NAME}
         c++_shared
         ltlib
         transport
+        ltproto
+        protobuf::libprotobuf-lite
 )
 
 target_include_directories(${PROJECT_NAME}

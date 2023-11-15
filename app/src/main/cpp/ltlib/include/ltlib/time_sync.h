@@ -29,59 +29,32 @@
  */
 
 #pragma once
-#include <cstdint>
-#include <functional>
+#include <ltlib/ltlib.h>
 #include <memory>
+#include <cstdint>
+#include <optional>
 
-#include <google/protobuf/message_lite.h>
+namespace ltlib
+{
 
-//#include <platforms/pc_sdl.h>
-#include "transport/include/transport/transport.h"
-
-
-namespace lt {
-
-class VDRPipeline;
-class VideoDecodeRenderPipeline {
+class LT_API TimeSync
+{
 public:
-    struct Params {
-        Params(lt::VideoCodecType _codec_type, uint32_t _width, uint32_t _height,
-               uint32_t _screen_refresh_rate,
-               std::function<void(uint32_t, std::shared_ptr<google::protobuf::MessageLite>, bool)>
-                   send_message);
-        bool validate() const;
-
-        lt::VideoCodecType codec_type;
-        uint32_t width;
-        uint32_t height;
-        uint32_t screen_refresh_rate;
-        //PcSdl* sdl = nullptr;
-        std::function<void(uint32_t, std::shared_ptr<google::protobuf::MessageLite>, bool)>
-            send_message_to_host;
-    };
-
-    enum class Action {
-        REQUEST_KEY_FRAME = 1,
-        NONE = 2,
+    struct Result
+    {
+        int64_t rtt;
+        int64_t time_diff;
     };
 
 public:
-    static std::unique_ptr<VideoDecodeRenderPipeline> create(const Params& params);
-    Action submit(const lt::VideoFrame& frame);
-    void resetRenderTarget();
-    void setTimeDiff(int64_t diff_us);
-    void setRTT(int64_t rtt_us);
-    void setBWE(uint32_t bps);
-    void setNack(uint32_t nack);
-    void setLossRate(float rate);
-    void setCursorInfo(int32_t cursor_id, float x, float y, bool visible);
-    void switchMouseMode(bool absolute);
+    TimeSync() = default;
+    std::optional<Result> calc(int64_t t0, int64_t t1, int64_t t2, int64_t t3);
+    int64_t getT0() const;
+    int64_t getT1() const;
 
 private:
-    VideoDecodeRenderPipeline() = default;
-
-private:
-    std::shared_ptr<VDRPipeline> impl_;
+    int64_t t0_ = 0;
+    int64_t t1_ = 0;
 };
 
-} // namespace lt
+} // namespace ltlib

@@ -32,7 +32,7 @@
 #include <cinttypes>
 #include <ltlib/times.h>
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
 #endif // __GNUC__
@@ -188,6 +188,6 @@ namespace ltlib {
 
 } // namespace ltlib
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif // __GNUC__

@@ -28,60 +28,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-#include <cstdint>
-#include <functional>
-#include <memory>
+#include <ltlib/time_sync.h>
 
-#include <google/protobuf/message_lite.h>
+namespace ltlib
+{
 
-//#include <platforms/pc_sdl.h>
-#include "transport/include/transport/transport.h"
+std::optional<TimeSync::Result> TimeSync::calc(int64_t t0, int64_t t1, int64_t t2, int64_t t3)
+{
+    t0_ = t2;
+    t1_ = t3;
+    if (t0 == 0 || t1 == 0) {
+        return std::nullopt;
+    }
+    Result result {};
+    result.rtt = (t3 - t0) - (t2 - t1);
+    result.time_diff = t3 - t2 - result.rtt / 2;
+    return result;
+}
 
+int64_t TimeSync::getT0() const
+{
+    return t0_;
+}
 
-namespace lt {
+int64_t TimeSync::getT1() const
+{
+    return t1_;
+}
 
-class VDRPipeline;
-class VideoDecodeRenderPipeline {
-public:
-    struct Params {
-        Params(lt::VideoCodecType _codec_type, uint32_t _width, uint32_t _height,
-               uint32_t _screen_refresh_rate,
-               std::function<void(uint32_t, std::shared_ptr<google::protobuf::MessageLite>, bool)>
-                   send_message);
-        bool validate() const;
-
-        lt::VideoCodecType codec_type;
-        uint32_t width;
-        uint32_t height;
-        uint32_t screen_refresh_rate;
-        //PcSdl* sdl = nullptr;
-        std::function<void(uint32_t, std::shared_ptr<google::protobuf::MessageLite>, bool)>
-            send_message_to_host;
-    };
-
-    enum class Action {
-        REQUEST_KEY_FRAME = 1,
-        NONE = 2,
-    };
-
-public:
-    static std::unique_ptr<VideoDecodeRenderPipeline> create(const Params& params);
-    Action submit(const lt::VideoFrame& frame);
-    void resetRenderTarget();
-    void setTimeDiff(int64_t diff_us);
-    void setRTT(int64_t rtt_us);
-    void setBWE(uint32_t bps);
-    void setNack(uint32_t nack);
-    void setLossRate(float rate);
-    void setCursorInfo(int32_t cursor_id, float x, float y, bool visible);
-    void switchMouseMode(bool absolute);
-
-private:
-    VideoDecodeRenderPipeline() = default;
-
-private:
-    std::shared_ptr<VDRPipeline> impl_;
-};
-
-} // namespace lt
+} // namespace ltlib
