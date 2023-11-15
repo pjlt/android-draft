@@ -112,6 +112,18 @@ class LtClient(
         //
     }
 
+    private fun onNativeClosed() {
+        Log.i("ltmsdk", "LtClient onNativeClosed()")
+    }
+
+    private fun onNativeConnected() {
+        Log.i("ltmsdk", "LtClient onNativeConnected()")
+    }
+
+    private fun onNativeSignalingMessage(key: String, value: String) {
+        Log.i("ltmsdk", "LtClient onNativeSignalingMessage('$key', '$value')")
+    }
+
 
     private external fun createNativeClient(clientID: String, roomID: String, token: String,
                                             p2pUsername: String, p2pPassword: String, signalingAddress: String,
@@ -120,4 +132,5 @@ class LtClient(
 
     private external fun destroyNativeClient(cli: Long)
     private external fun nativeStart(cli: Long): Boolean
+    private external fun nativeSwitchMouseMode(cli: Long)
 }

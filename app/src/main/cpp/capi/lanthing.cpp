@@ -37,6 +37,8 @@
 #include <client/native_client.h>
 #include <ltlib/threads.h>
 
+JavaVM* g_jvm = nullptr;
+
 namespace {
     std::string jStr2Std(JNIEnv *env, jstring jstr) {
         jsize length = env->GetStringLength(jstr);
@@ -49,6 +51,13 @@ namespace {
         return reinterpret_cast<lt::LtNativeClient*>(ptr);
     }
 } // namespace
+
+extern "C"
+JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+    (void)reserved;
+    g_jvm = vm;
+    return  JNI_VERSION_1_6;
+}
 
 extern "C"
 JNIEXPORT jlong JNICALL
@@ -86,18 +95,29 @@ Java_cn_lanthing_ltmsdk_LtClient_createNativeClient(JNIEnv *env, jobject thiz, j
     if (!params.validate()) {
         return -1;
     }
-    return reinterpret_cast<jlong>(new lt::LtNativeClient{params});
+    auto cli = lt::LtNativeClient::create(params);
+    if (cli != nullptr) {
+        return reinterpret_cast<jlong>(cli);
+    } else {
+        // reinterpret_cast<jlong>(nullptr) -> ???
+        return 0;
+    }
 }
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_cn_lanthing_ltmsdk_LtClient_destroyNativeClient(JNIEnv *env, jobject thiz, jlong cli) {
-    auto obj = reinterpret_cast<lt::LtNativeClient*>(cli);
-    delete obj;
+    lt::LtNativeClient::destroy(ncast(cli));
 }
 
 extern "C"
 JNIEXPORT jboolean JNICALL
 Java_cn_lanthing_ltmsdk_LtClient_nativeStart(JNIEnv *env, jobject thiz, jlong cli) {
     return ncast(cli)->start();
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_lanthing_ltmsdk_LtClient_nativeSwitchMouseMode(JNIEnv *env, jobject thiz, jlong cli) {
+    ncast(cli)->switchMouseMode();
 }

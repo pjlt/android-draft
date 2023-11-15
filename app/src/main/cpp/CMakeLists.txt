@@ -22,6 +22,8 @@ add_library(${PROJECT_NAME} SHARED
 
         ${CMAKE_CURRENT_SOURCE_DIR}/client/native_client.h
         ${CMAKE_CURRENT_SOURCE_DIR}/client/native_client.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/client/jvm_client_proxy.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/client/jvm_client_proxy.cpp
 
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/decoder/video_decoder.h
         ${CMAKE_CURRENT_SOURCE_DIR}/graphics/decoder/video_decoder.cpp
@@ -55,7 +57,7 @@ target_link_libraries(${PROJECT_NAME}
         mediandk
         GLESv2
         EGL
-        c++_shared
+        c++_static
         ltlib
         transport
         ltproto

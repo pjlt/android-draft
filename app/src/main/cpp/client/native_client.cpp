@@ -39,7 +39,6 @@
 #include <ltproto/client2worker/start_transmission_ack.pb.h>
 #include <ltproto/client2worker/switch_mouse_mode.pb.h>
 #include <ltproto/common/keep_alive.pb.h>
-#include <ltproto/ltproto.h>
 #include <ltproto/server/request_connection.pb.h>
 #include <ltproto/server/request_connection_ack.pb.h>
 #include <ltproto/signaling/join_room.pb.h>
@@ -48,6 +47,7 @@
 #include <ltproto/signaling/signaling_message_ack.pb.h>
 
 #include <ltlib/logging.h>
+#include <ltproto/ltproto.h>
 
 #include <rtc/rtc.h>
 
@@ -71,7 +71,6 @@ lt::VideoCodecType to_ltrtc(std::string codec_str) {
 
 std::string toString(lt::VideoCodecType codec) {
     switch (codec) {
-
     case lt::VideoCodecType::H264:
         return "AVC";
     case lt::VideoCodecType::H265:
@@ -87,6 +86,9 @@ std::string toString(lt::VideoCodecType codec) {
 namespace lt {
 
 bool LtNativeClient::Params::validate() const {
+    if (jvm_client == 0) {
+        return false;
+    }
     if (client_id.empty() || room_id.empty() || token.empty() || p2p_username.empty() ||
         p2p_password.empty() || signaling_address.empty()) {
         return false;
@@ -101,6 +103,20 @@ bool LtNativeClient::Params::validate() const {
         return false;
     }
     return true;
+}
+
+LtNativeClient* LtNativeClient::create(const LtNativeClient::Params& params) {
+    auto proxy = JvmClientProxy::create(params.jvm_client);
+    if (proxy == nullptr) {
+        return nullptr;
+    }
+    auto cli = new LtNativeClient{params};
+    cli->jvm_client_ = std::move(proxy);
+    return cli;
+}
+
+void LtNativeClient::destroy(LtNativeClient* obj) {
+    delete obj;
 }
 
 LtNativeClient::LtNativeClient(const Params& params)
@@ -147,7 +163,7 @@ void LtNativeClient::checkWorkerTimeout() {
         tellAppKeepAliveTimeout();
         // 为了让消息发送到app，延迟50ms再关闭程序
         postDelayTask(50, [this]() {
-            // TODO: 通知上层关闭
+            jvm_client_->onNativeClosed();
         });
         return;
     }
@@ -173,7 +189,8 @@ void LtNativeClient::switchMouseMode() {
 }
 
 void LtNativeClient::tellAppKeepAliveTimeout() {
-    //TODO: 回调到上层
+    // FIXME: 具体通知是KeepAliveTimeout引起的断链
+    jvm_client_->onNativeClosed();
 }
 
 bool LtNativeClient::initTransport() {
@@ -298,7 +315,7 @@ void LtNativeClient::onTpConnected(void* user_data, lt::LinkType link_type) {
     oss << "Lanthing " << (that->is_p2p_.value() ? "P2P " : "Relay ")
         << toString(that->video_params_.codec_type) << " GPU:GPU"; // 暂时只支持硬件编解码.
     // that->sdl_->setTitle(oss.str());
-    // TODO: 通知上层连接成功
+    that->jvm_client_->onNativeConnected();
 }
 
 void LtNativeClient::onTpConnChanged(void*) {}
@@ -306,25 +323,28 @@ void LtNativeClient::onTpConnChanged(void*) {}
 void LtNativeClient::onTpFailed(void* user_data) {
     auto that = reinterpret_cast<LtNativeClient*>(user_data);
     // that->stopWait();
-    //  TODO: 通知上层断链
+    that->jvm_client_->onNativeClosed();
 }
 
 void LtNativeClient::onTpDisconnected(void* user_data) {
     auto that = reinterpret_cast<LtNativeClient*>(user_data);
     // that->stopWait();
-    //  TODO: 通知上层断链
+    that->jvm_client_->onNativeClosed();
 }
 
 void LtNativeClient::onTpSignalingMessage(void* user_data, const char* key, const char* value) {
     auto that = reinterpret_cast<LtNativeClient*>(user_data);
     // 将key和value封装在proto里.
-    auto msg = std::make_shared<ltproto::signaling::SignalingMessage>();
-    msg->set_level(ltproto::signaling::SignalingMessage::Rtc);
-    auto rtc_msg = msg->mutable_rtc_message();
-    rtc_msg->set_key(key);
-    rtc_msg->set_value(value);
+    //    auto msg = std::make_shared<ltproto::signaling::SignalingMessage>();
+    //    msg->set_level(ltproto::signaling::SignalingMessage::Rtc);
+    //    auto rtc_msg = msg->mutable_rtc_message();
+    //    rtc_msg->set_key(key);
+    //    rtc_msg->set_value(value);
     // that->postTask([that, msg]() { that->signaling_client_->send(ltproto::id(msg), msg); });
-    //  TODO: 将信令回调到上层
+    std::string _key = key;
+    std::string _value = value;
+    that->postTask(
+        [that, _key, _value] { that->jvm_client_->onNativeSignalingMessage(_key, _value); });
 }
 
 void LtNativeClient::dispatchRemoteMessage(
@@ -387,8 +407,8 @@ void LtNativeClient::onStartTransmissionAck(
     }
     else {
         LOG(INFO) << "StartTransmission failed with " << ltproto::ErrorCode_Name(msg->err_code());
-        //stopWait();
-        //TODO: 通知app断链
+        // stopWait();
+        jvm_client_->onNativeClosed();
     }
 }
 

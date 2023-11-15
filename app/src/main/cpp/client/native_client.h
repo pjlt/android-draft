@@ -42,12 +42,14 @@
 
 #include <audio/player/audio_player.h>
 #include <graphics/drpipeline/video_decode_render_pipeline.h>
+#include <client/jvm_client_proxy.h>
 
 namespace lt {
 
 class LtNativeClient {
 public:
     struct Params {
+        int64_t jvm_client;
         std::string client_id;
         std::string room_id;
         std::string token;
@@ -67,13 +69,16 @@ public:
     };
 
 public:
-    LtNativeClient(const Params& params);
+    static LtNativeClient* create(const Params& params);
+    static void destroy(LtNativeClient* obj);
     ~LtNativeClient();
 
     bool start();
     void switchMouseMode();
 
 private:
+    LtNativeClient(const Params& params);
+
     void postTask(const std::function<void()>& task);
     void postDelayTask(int64_t delay_ms, const std::function<void()>& task);
     void checkWorkerTimeout();
@@ -103,6 +108,7 @@ private:
     void onCursorInfo(std::shared_ptr<google::protobuf::MessageLite> msg);
 
 private:
+    std::unique_ptr<JvmClientProxy> jvm_client_;
     std::string auth_token_;
     std::string p2p_username_;
     std::string p2p_password_;
@@ -120,9 +126,8 @@ private:
     int64_t time_diff_ = 0;
     std::optional<bool> is_p2p_;
     bool absolute_mouse_ = true;
-    bool absolute_mouse_ = true;
     bool last_w_or_h_is_0_ = false;
-    int64_t last_received_keepalive_;
+    int64_t last_received_keepalive_ = 0;
 };
 
 } // namespace lt
