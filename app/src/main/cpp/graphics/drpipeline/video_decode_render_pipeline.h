@@ -36,7 +36,7 @@
 //#include <google/protobuf/message_lite.h>
 
 //#include <platforms/pc_sdl.h>
-#include <transport/transport.h>
+#include "transport/include/transport/transport.h"
 
 namespace google {
     namespace protobuf {

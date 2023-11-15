@@ -7,6 +7,7 @@ set(LT_ANDROID ON)
 add_compile_definitions(LT_ANDROID=1)
 
 add_subdirectory(ltlib)
+add_subdirectory(transport)
 
 add_library(${PROJECT_NAME} SHARED
         ${CMAKE_CURRENT_SOURCE_DIR}/capi/lanthing.cpp
@@ -37,8 +38,6 @@ add_library(${PROJECT_NAME} SHARED
         ${CMAKE_CURRENT_SOURCE_DIR}/audio/player/audio_player.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/audio/player/sl_audio_player.h
         ${CMAKE_CURRENT_SOURCE_DIR}/audio/player/sl_audio_player.cpp
-
-        ${CMAKE_CURRENT_SOURCE_DIR}/transport/transport.h
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -50,6 +49,7 @@ target_link_libraries(${PROJECT_NAME}
         EGL
         c++_shared
         ltlib
+        transport
 )
 
 target_include_directories(${PROJECT_NAME}
