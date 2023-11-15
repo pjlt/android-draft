@@ -9,7 +9,9 @@ import cn.lanthing.ltproto.signaling.JoinRoomAckProto.JoinRoomAck
 import cn.lanthing.ltproto.signaling.JoinRoomProto.JoinRoom
 import cn.lanthing.ltproto.signaling.SignalingMessageAckProto.SignalingMessageAck
 import cn.lanthing.ltproto.signaling.SignalingMessageProto.SignalingMessage
+import cn.lanthing.ltproto.signaling.SignalingMessageProto.SignalingMessage.RtcMessage
 import cn.lanthing.net.SocketClient
+import com.google.protobuf.ByteString
 import com.google.protobuf.Message
 
 // 1. 尽量让LtClient内部闭环，即尽量少点向App层回调东西
@@ -49,8 +51,9 @@ class LtClient(
     private var nativeClient: Long = 0
 
     init {
-        nativeClient = createNativeClient(
-            clientID, roomID, token, p2pUsername, p2pPassword, signalingAddress, signalingPort, codecType, audioChannels, audioFreq, reflexServers
+        nativeClient = createNativeClient( videoSurface, cursorSurface,
+            clientID, roomID, token, p2pUsername, p2pPassword, signalingAddress, signalingPort,
+            codecType, audioChannels, audioFreq, reflexServers
         )
     }
 
@@ -63,6 +66,7 @@ class LtClient(
     // 对应lanthing-pc Client::onPlatformExit()
     fun stop() {
         if (nativeClient != 0L) {
+            nativeStop(nativeClient)
             destroyNativeClient(nativeClient)
             nativeClient = 0L
         }
@@ -101,15 +105,42 @@ class LtClient(
         }
         Log.i("ltmsdk", "Join room success")
         val success = nativeStart(nativeClient)
-        // TODO: error handling
+        if (!success) {
+            //TODO: error handling
+            Log.e("ltmsdk", "nativeStart failed")
+        }
     }
 
     private fun onSignalingMessage(msg: SignalingMessage) {
-        //
+        when (msg.level) {
+            SignalingMessage.Level.Core -> dispatchSignalingMessageCore(msg.coreMessage)
+            SignalingMessage.Level.Rtc -> dispatchSignalingMessageRtc(msg.rtcMessage)
+            else -> {
+                Log.e("ltmsdk", "Unknown SignalingMessage level: ${msg.level}")
+            }
+        }
+    }
+
+    private fun dispatchSignalingMessageCore(msg: SignalingMessage.CoreMessage) {
+        if (msg.key.equals("close")) {
+            stop()
+        }
+    }
+
+    private fun dispatchSignalingMessageRtc(msg: SignalingMessage.RtcMessage) {
+        nativeOnSignalingMessage(nativeClient, msg.key, msg.value.toByteArray())
     }
 
     private fun onSignalingMessageAck(msg: SignalingMessageAck) {
-        //
+        when (msg.errCode) {
+            ErrorCodeOuterClass.ErrorCode.Success -> {}
+            ErrorCodeOuterClass.ErrorCode.SignalingPeerNotOnline -> {
+                Log.e("ltmsdk", "Send signaling message failed, remote device not online")
+            }
+            else -> {
+                Log.e("ltmsdk", "Send signaling message failed")
+            }
+        }
     }
 
     private fun onNativeClosed() {
@@ -120,17 +151,24 @@ class LtClient(
         Log.i("ltmsdk", "LtClient onNativeConnected()")
     }
 
-    private fun onNativeSignalingMessage(key: String, value: String) {
-        Log.i("ltmsdk", "LtClient onNativeSignalingMessage('$key', '$value')")
+    private fun onNativeSignalingMessage(key: String, value: ByteArray) {
+        Log.i("ltmsdk", "LtClient onNativeSignalingMessage(key:'$key')")
+        val byteValue = ByteString.copyFrom(value)
+        val msg = SignalingMessage.newBuilder()
+            .setLevel(SignalingMessage.Level.Rtc)
+            .setRtcMessage(RtcMessage.newBuilder().setKey(key).setValue(byteValue).build())
+            .build()
+        signalingClient.sendMessage(LtProto.SignalingMessage.ID, msg)
     }
 
 
-    private external fun createNativeClient(clientID: String, roomID: String, token: String,
+    private external fun createNativeClient(videoSurface: Surface, cursorSurface: Surface, clientID: String, roomID: String, token: String,
                                             p2pUsername: String, p2pPassword: String, signalingAddress: String,
                                             signalingPort: Int, codecType: String, audioChannels: Int,
                                             audioFreq: Int, reflexServers: List<String>): Long
-
     private external fun destroyNativeClient(cli: Long)
     private external fun nativeStart(cli: Long): Boolean
+    private external fun nativeStop(cli: Long)
     private external fun nativeSwitchMouseMode(cli: Long)
+    private external fun nativeOnSignalingMessage(cli: Long, key: String, value: ByteArray)
 }

@@ -49,7 +49,9 @@ namespace lt {
 class LtNativeClient {
 public:
     struct Params {
-        int64_t jvm_client;
+        jobject jvm_client;
+        jobject video_surface;
+        jobject cursor_surface;
         std::string client_id;
         std::string room_id;
         std::string token;
@@ -74,6 +76,8 @@ public:
     ~LtNativeClient();
 
     bool start();
+    void onPlatformStop();
+    void onSignalingMessage(const std::string& key, const std::string& value);
     void switchMouseMode();
 
 private:

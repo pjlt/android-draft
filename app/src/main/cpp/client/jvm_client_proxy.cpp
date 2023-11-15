@@ -39,7 +39,7 @@ namespace {
 struct JMethods {
     lt::JvmClientProxy::JMethodInfo onNativeClosed = {"onNativeClosed", "()V"};
     lt::JvmClientProxy::JMethodInfo onNativeSignalingMessage = {"onNativeSignalingMessage",
-                                        "(Ljava/lang/String;Ljava/lang/String;)V"};
+                                                                "(Ljava/lang/String;[B)V"};
     lt::JvmClientProxy::JMethodInfo onNativeConnected = {"onNativeConnected", "()V"};
 };
 
@@ -49,7 +49,7 @@ const char* kJvmClientClassName = "cn/lanthing/ltmsdk/LtClient";
 
 namespace lt {
 
-std::unique_ptr<JvmClientProxy> JvmClientProxy::create(int64_t jvm_obj) {
+std::unique_ptr<JvmClientProxy> JvmClientProxy::create(jobject jvm_obj) {
     std::unique_ptr<JvmClientProxy> proxy{new JvmClientProxy{jvm_obj}};
     if (!proxy->init()) {
         return nullptr;
@@ -57,7 +57,7 @@ std::unique_ptr<JvmClientProxy> JvmClientProxy::create(int64_t jvm_obj) {
     return proxy;
 }
 
-JvmClientProxy::JvmClientProxy(int64_t jvm_obj)
+JvmClientProxy::JvmClientProxy(jobject jvm_obj)
     : obj_{reinterpret_cast<jobject>(jvm_obj)} {}
 
 JvmClientProxy::~JvmClientProxy() {
@@ -92,8 +92,9 @@ void JvmClientProxy::onNativeClosed() {
 void JvmClientProxy::onNativeSignalingMessage(const std::string& key, const std::string& value) {
     JNIEnv* env;
     g_jvm->AttachCurrentThread(&env, nullptr);
-    env->CallVoidMethod(obj_, on_signaling_message_, env->NewStringUTF(key.c_str()),
-                        env->NewStringUTF(value.c_str()));
+    jbyteArray jb = env->NewByteArray(static_cast<jsize>(value.size()));
+    env->SetByteArrayRegion(jb, 0, static_cast<jsize>(value.size()), reinterpret_cast<const jbyte*>(value.data()));
+    env->CallVoidMethod(obj_, on_signaling_message_, env->NewStringUTF(key.c_str()), jb);
     g_jvm->DetachCurrentThread();
 }
 

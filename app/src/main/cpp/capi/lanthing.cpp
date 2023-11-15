@@ -40,33 +40,30 @@
 JavaVM* g_jvm = nullptr;
 
 namespace {
-    std::string jStr2Std(JNIEnv *env, jstring jstr) {
-        jsize length = env->GetStringLength(jstr);
-        const char* str = env->GetStringUTFChars((jstring)jstr, nullptr);
-        auto string = std::string(str, length);
-        env->ReleaseStringUTFChars(jstr, str);
-        return string;
-    }
-    lt::LtNativeClient* ncast(jlong ptr) {
-        return reinterpret_cast<lt::LtNativeClient*>(ptr);
-    }
+std::string jStr2Std(JNIEnv* env, jstring jstr) {
+    jsize length = env->GetStringLength(jstr);
+    const char* str = env->GetStringUTFChars((jstring)jstr, nullptr);
+    auto string = std::string(str, length);
+    env->ReleaseStringUTFChars(jstr, str);
+    return string;
+}
+lt::LtNativeClient* ncast(jlong ptr) {
+    return reinterpret_cast<lt::LtNativeClient*>(ptr);
+}
 } // namespace
 
-extern "C"
-JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     (void)reserved;
     g_jvm = vm;
-    return  JNI_VERSION_1_6;
+    return JNI_VERSION_1_6;
 }
 
-extern "C"
-JNIEXPORT jlong JNICALL
-Java_cn_lanthing_ltmsdk_LtClient_createNativeClient(JNIEnv *env, jobject thiz, jstring client_id,
-                                                    jstring room_id, jstring token,
-                                                    jstring p2p_username, jstring p2p_password,
-                                                    jstring signaling_address, jint signaling_port,
-                                                    jstring codec_type, jint audio_channels,
-                                                    jint audio_freq, jobject reflex_servers) {
+extern "C" JNIEXPORT jlong JNICALL Java_cn_lanthing_ltmsdk_LtClient_createNativeClient(
+    JNIEnv* env, jobject thiz, jobject video_surface, jobject cursor_surface, jstring client_id,
+    jstring room_id, jstring token, jstring p2p_username, jstring p2p_password,
+    jstring signaling_address, jint signaling_port, jstring codec_type, jint audio_channels,
+    jint audio_freq, jobject reflex_servers) {
+
     ltlib::ThreadWatcher::instance()->disableCrashOnTimeout();
     jclass cList = env->FindClass("java/util/List");
     jmethodID mSize = env->GetMethodID(cList, "size", "()I");
@@ -81,6 +78,9 @@ Java_cn_lanthing_ltmsdk_LtClient_createNativeClient(JNIEnv *env, jobject thiz, j
         rflxs.push_back(jStr2Std(env, strObj));
     }
     lt::LtNativeClient::Params params{};
+    params.jvm_client = thiz;
+    params.video_surface = video_surface;
+    params.cursor_surface = cursor_surface;
     params.client_id = jStr2Std(env, client_id);
     params.room_id = jStr2Std(env, room_id);
     params.token = jStr2Std(env, token);
@@ -98,26 +98,44 @@ Java_cn_lanthing_ltmsdk_LtClient_createNativeClient(JNIEnv *env, jobject thiz, j
     auto cli = lt::LtNativeClient::create(params);
     if (cli != nullptr) {
         return reinterpret_cast<jlong>(cli);
-    } else {
+    }
+    else {
         // reinterpret_cast<jlong>(nullptr) -> ???
         return 0;
     }
 }
 
-extern "C"
-JNIEXPORT void JNICALL
-Java_cn_lanthing_ltmsdk_LtClient_destroyNativeClient(JNIEnv *env, jobject thiz, jlong cli) {
+extern "C" JNIEXPORT void JNICALL Java_cn_lanthing_ltmsdk_LtClient_destroyNativeClient(JNIEnv* env,
+                                                                                       jobject thiz,
+                                                                                       jlong cli) {
     lt::LtNativeClient::destroy(ncast(cli));
 }
 
-extern "C"
-JNIEXPORT jboolean JNICALL
-Java_cn_lanthing_ltmsdk_LtClient_nativeStart(JNIEnv *env, jobject thiz, jlong cli) {
+extern "C" JNIEXPORT jboolean JNICALL Java_cn_lanthing_ltmsdk_LtClient_nativeStart(JNIEnv* env,
+                                                                                   jobject thiz,
+                                                                                   jlong cli) {
     return ncast(cli)->start();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_cn_lanthing_ltmsdk_LtClient_nativeSwitchMouseMode(JNIEnv* env, jobject thiz, jlong cli) {
+    ncast(cli)->switchMouseMode();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_cn_lanthing_ltmsdk_LtClient_nativeSwitchMouseMode(JNIEnv *env, jobject thiz, jlong cli) {
-    ncast(cli)->switchMouseMode();
+Java_cn_lanthing_ltmsdk_LtClient_nativeStop(JNIEnv *env, jobject thiz, jlong cli) {
+    ncast(cli)->onPlatformStop();
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_cn_lanthing_ltmsdk_LtClient_nativeOnSignalingMessage(JNIEnv *env, jobject thiz, jlong cli, jstring key,
+                                                          jbyteArray value) {
+    jboolean isCopy;
+    jbyte* jb = env->GetByteArrayElements(value, &isCopy);
+    jsize size = env->GetArrayLength(value);
+    std::string real_value(jb, jb+size);
+    env->ReleaseByteArrayElements(value, jb, 0);
+    ncast(cli)->onSignalingMessage(jStr2Std(env, key), real_value);
 }

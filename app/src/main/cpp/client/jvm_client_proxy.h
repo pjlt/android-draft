@@ -47,7 +47,7 @@ public:
     };
 
 public:
-    static std::unique_ptr<JvmClientProxy> create(int64_t jvm_obj);
+    static std::unique_ptr<JvmClientProxy> create(jobject jvm_obj);
     ~JvmClientProxy();
     JvmClientProxy(const JvmClientProxy&) = delete;
     JvmClientProxy(JvmClientProxy&&) = delete;
@@ -59,7 +59,7 @@ public:
     void onNativeConnected();
 
 private:
-    JvmClientProxy(int64_t jvm_obj);
+    JvmClientProxy(jobject jvm_obj);
     bool init();
     bool loadMethod(JNIEnv* env, JMethodInfo info, jmethodID& jmid);
 

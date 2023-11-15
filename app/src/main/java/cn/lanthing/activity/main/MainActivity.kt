@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         init {
+            System.loadLibrary("rtc")
             System.loadLibrary("lanthing")
         }
     }

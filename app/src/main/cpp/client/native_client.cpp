@@ -162,9 +162,7 @@ void LtNativeClient::checkWorkerTimeout() {
                   << (now - last_received_keepalive_) << "ms, exit";
         tellAppKeepAliveTimeout();
         // 为了让消息发送到app，延迟50ms再关闭程序
-        postDelayTask(50, [this]() {
-            jvm_client_->onNativeClosed();
-        });
+        postDelayTask(50, [this]() { jvm_client_->onNativeClosed(); });
         return;
     }
     postDelayTask(k500ms, std::bind(&LtNativeClient::checkWorkerTimeout, this));
@@ -226,7 +224,7 @@ bool LtNativeClient::initTransport() {
     params.video_codec_type = video_params_.codec_type;
     params.audio_channels = audio_params_.channels;
     params.audio_sample_rate = audio_params_.frames_per_second;
-    tp_client_ = rtc::Client::create(std::move(params));
+    tp_client_ = rtc::Client::create(params);
     if (tp_client_ == nullptr) {
         LOG(ERR) << "Create lt::tp::Client failed";
         return false;
@@ -447,6 +445,14 @@ void LtNativeClient::onCursorInfo(std::shared_ptr<google::protobuf::MessageLite>
     last_w_or_h_is_0_ = false;
     video_pipeline_->setCursorInfo(msg->preset(), 1.0f * msg->x() / msg->w(),
                                    1.0f * msg->y() / msg->h(), msg->visible());
+}
+
+void LtNativeClient::onPlatformStop() {
+    //???
+}
+
+void LtNativeClient::onSignalingMessage(const std::string& key, const std::string& value) {
+    tp_client_->onSignalingMessage(key.c_str(), value.c_str());
 }
 
 } // namespace lt
