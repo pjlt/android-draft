@@ -80,15 +80,19 @@ bool NdkVideoDecoder::init() {
         return false;
     }
 
-    AMediaFormat_setInt32(media_format, AMEDIAFORMAT_KEY_WIDTH, static_cast<int32_t>(width()));
-    AMediaFormat_setInt32(media_format, AMEDIAFORMAT_KEY_HEIGHT, static_cast<int32_t>(height()));
+    int32_t surface_width = ANativeWindow_getWidth(a_native_window_);
+    int32_t surface_height = ANativeWindow_getHeight(a_native_window_);
+    AMediaFormat_setInt32(media_format, AMEDIAFORMAT_KEY_WIDTH, surface_width);
+    AMediaFormat_setInt32(media_format, AMEDIAFORMAT_KEY_HEIGHT, surface_height);
     AMediaFormat_setInt32(media_format, AMEDIAFORMAT_KEY_FRAME_RATE, 60);
+    LOG(INFO) << "Init AMediaFormat: " << AMediaFormat_toString(media_format);
     media_status_t status =
         AMediaCodec_configure(media_codec_, media_format, a_native_window_, nullptr, 0);
     if (status != AMEDIA_OK) {
         LOG(ERR) << "AMediaCodec_configure failed " << status;
         return false;
     }
+    LOG(INFO) << "AMediaCodec_start";
     status = AMediaCodec_start(media_codec_);
     if (status != AMEDIA_OK) {
         LOG(ERR) << "AMediaCodec_start failed " << status;
@@ -143,7 +147,13 @@ DecodedFrame NdkVideoDecoder::pullFrame() {
     AMediaCodecBufferInfo info{};
     ssize_t index = AMediaCodec_dequeueOutputBuffer(media_codec_, &info, 1'000'000);
     if (index < 0) {
-        LOG(ERR) << "AMediaCodec_dequeueOutputBuffer failed, index:" << index;
+        if (index == -2) {
+            AMediaFormat* new_foramt = AMediaCodec_getOutputFormat(media_codec_);
+            LOG(ERR) << "AMediaCodec_dequeueOutputBuffer return -2, new AMediaFormat: " << AMediaFormat_toString(new_foramt);
+            AMediaFormat_delete(new_foramt);
+        } else {
+            LOG(ERR) << "AMediaCodec_dequeueOutputBuffer failed, index:" << index;
+        }
         frame.status = DecodeStatus::Failed;
         return frame;
     }

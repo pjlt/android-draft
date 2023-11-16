@@ -260,6 +260,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val activity = LocalContext.current as Activity
             val bundle = Bundle()
+            bundle.putInt("videoWidth", msg.streamingParams.videoWidth)
+            bundle.putInt("videoHeight", msg.streamingParams.videoHeight)
             bundle.putString("clientID", msg.clientId)
             bundle.putString("roomID", msg.roomId)
             bundle.putString("token", msg.authToken)

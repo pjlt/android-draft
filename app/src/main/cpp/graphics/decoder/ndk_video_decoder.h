@@ -34,6 +34,7 @@
 #include <vector>
 #include <memory>
 
+#include <jni.h>
 #include <android/native_window.h>
 #include <media/NdkMediaCodec.h>
 

@@ -32,6 +32,7 @@
 
 #include <android/native_window.h>
 #include <media/NdkMediaCodec.h>
+#include <jni.h>
 
 namespace lt {
 
@@ -60,12 +61,13 @@ public:
     uint32_t displayHeight() override;
 
 private:
-    ANativeWindow* a_native_window_;
+    jobject jvm_window_;
+    ANativeWindow* a_native_window_ = nullptr;
     AMediaCodec* media_codec_ = nullptr;
     uint32_t video_width_ = 0;
     uint32_t video_height_ = 0;
-    uint32_t window_width_;
-    uint32_t window_height_;
+    uint32_t window_width_ = 0;
+    uint32_t window_height_ = 0;
 };
 
 } // namespace lt

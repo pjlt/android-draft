@@ -157,6 +157,7 @@ void SLAudioPlayer::slCallback(SLAndroidSimpleBufferQueueItf bq, void* context) 
 }
 
 void SLAudioPlayer::doPlay() {
+    // TODO: xxx
     std::lock_guard<std::mutex> lock{mutex_};
     if (buffer_.empty()) {
         (*queue_)->Enqueue(queue_, dummy_audio_.data(), dummy_audio_.size());

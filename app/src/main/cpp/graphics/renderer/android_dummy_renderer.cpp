@@ -30,18 +30,36 @@
 
 #include "android_dummy_renderer.h"
 
+#include <android/native_window_jni.h>
+
 #include <ltlib/logging.h>
+
+extern JavaVM* g_jvm;
 
 namespace lt {
 
 AndroidDummyRenderer::AndroidDummyRenderer(const Params& params)
-    : a_native_window_{reinterpret_cast<ANativeWindow*>(params.window)}
+    : jvm_window_{reinterpret_cast<jobject>(params.window)}
     , video_width_{params.width}
     , video_height_{params.height} {}
 
-AndroidDummyRenderer::~AndroidDummyRenderer() {}
+AndroidDummyRenderer::~AndroidDummyRenderer() {
+    ANativeWindow_release(a_native_window_);
+    JNIEnv* env;
+    g_jvm->AttachCurrentThread(&env, nullptr);
+    env->DeleteGlobalRef(jvm_window_);
+    g_jvm->DetachCurrentThread();
+}
 
 bool AndroidDummyRenderer::init() {
+    JNIEnv* env;
+    g_jvm->AttachCurrentThread(&env, nullptr);
+    a_native_window_ = ANativeWindow_fromSurface(env, jvm_window_);
+    g_jvm->DetachCurrentThread();
+    if (a_native_window_ == nullptr) {
+        LOG(ERR) << "ANativeWindow_fromSurface failed";
+        return false;
+    }
     window_width_ = ANativeWindow_getWidth(a_native_window_);
     window_height_ = ANativeWindow_getHeight(a_native_window_);
     return true;
@@ -79,11 +97,11 @@ bool AndroidDummyRenderer::waitForPipeline(int64_t max_wait_ms) {
 }
 
 void* AndroidDummyRenderer::hwDevice() {
-    return nullptr;
+    return a_native_window_;
 }
 
 void* AndroidDummyRenderer::hwContext() {
-    return nullptr;
+    return a_native_window_;
 }
 
 uint32_t AndroidDummyRenderer::displayWidth() {

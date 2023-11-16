@@ -61,7 +61,8 @@ extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 }
 
 extern "C" JNIEXPORT jlong JNICALL Java_cn_lanthing_ltmsdk_LtClient_createNativeClient(
-    JNIEnv* env, jobject thiz, jobject video_surface, jobject cursor_surface, jstring client_id,
+    JNIEnv* env, jobject thiz, jobject video_surface, jobject cursor_surface,
+    jint videoWidth, jint videoHeight, jstring client_id,
     jstring room_id, jstring token, jstring p2p_username, jstring p2p_password,
     jstring signaling_address, jint signaling_port, jstring codec_type, jint audio_channels,
     jint audio_freq, jobject reflex_servers) {
@@ -72,7 +73,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_cn_lanthing_ltmsdk_LtClient_createNative
     jmethodID mSize = env->GetMethodID(cList, "size", "()I");
     jmethodID mGet = env->GetMethodID(cList, "get", "(I)Ljava/lang/Object;");
     if (mSize == nullptr || mGet == nullptr) {
-        return -1;
+        return 0;
     }
     jint svrSize = env->CallIntMethod(reflex_servers, mSize);
     std::vector<std::string> rflxs;
@@ -82,8 +83,10 @@ extern "C" JNIEXPORT jlong JNICALL Java_cn_lanthing_ltmsdk_LtClient_createNative
     }
     lt::LtNativeClient::Params params{};
     params.jvm_client = env->NewGlobalRef(thiz); // NOTE: 由内部释放
-    params.video_surface = video_surface;
-    params.cursor_surface = cursor_surface;
+    params.video_surface = env->NewGlobalRef(video_surface);
+    params.cursor_surface = env->NewGlobalRef(cursor_surface);
+    params.width = static_cast<uint32_t>(std::max(0, videoWidth));
+    params.height = static_cast<uint32_t>(std::max(0, videoHeight));
     params.client_id = jStr2Std(env, client_id);
     params.room_id = jStr2Std(env, room_id);
     params.token = jStr2Std(env, token);
@@ -96,7 +99,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_cn_lanthing_ltmsdk_LtClient_createNative
     params.audio_freq = audio_freq;
     params.reflex_servers = rflxs;
     if (!params.validate()) {
-        return -1;
+        return 0;
     }
     auto cli = lt::LtNativeClient::create(params);
     if (cli != nullptr) {

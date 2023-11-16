@@ -1,5 +1,6 @@
 package cn.lanthing.activity.stream
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.util.Log
 import android.view.Surface
@@ -7,13 +8,15 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import cn.lanthing.ltmsdk.LtClient
 import com.google.protobuf.Message
 
 class StreamActivity : ComponentActivity() {
-    private var width: Int = 0
-    private var height: Int = 0
+    private var videoWidth: Int = 0
+    private var videoHeight: Int = 0
     private var videoHolder: SurfaceHolder? = null
     private var cursorHolder: SurfaceHolder? = null
     private var ltClientStarted: Boolean = false
@@ -31,11 +34,14 @@ class StreamActivity : ComponentActivity() {
     private lateinit var ltClient: LtClient
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         val params = intent.extras
         if (params == null || params.isEmpty) {
             finish()
             return
         } else {
+            videoWidth = params.getInt("videoWidth", 0)
+            videoHeight = params.getInt("videoHeight", 0)
             clientID = params.getString("clientID", "")
             roomID = params.getString("roomID", "")
             token = params.getString("token", "")
@@ -56,7 +62,7 @@ class StreamActivity : ComponentActivity() {
             }
         }
         setContent {
-            AndroidView(factory = { ctx ->
+            AndroidView(modifier = Modifier.fillMaxSize(), factory = { ctx ->
                 SurfaceView(ctx).apply {
                     holder.addCallback(object : SurfaceHolder.Callback {
                         override fun surfaceCreated(holder: SurfaceHolder) {
@@ -70,8 +76,6 @@ class StreamActivity : ComponentActivity() {
                             height: Int
                         ) {
                             Log.i("stream", "Video surface changed format:$format, width:$width, height:$height")
-                            this@StreamActivity.width = width
-                            this@StreamActivity.height = height
                             this@StreamActivity.videoHolder = holder
                             if (this@StreamActivity.cursorHolder != null && !ltClientStarted) {
                                 ltClientStarted = true
@@ -82,8 +86,6 @@ class StreamActivity : ComponentActivity() {
                         override fun surfaceDestroyed(holder: SurfaceHolder) {
                             Log.i("stream", "Video surface destroyed")
                             //TODO: 停止串流
-                            this@StreamActivity.width = 0
-                            this@StreamActivity.height = 0
                             this@StreamActivity.videoHolder = null
                         }
                     })
@@ -134,6 +136,8 @@ class StreamActivity : ComponentActivity() {
         ltClient = LtClient(
             videoSurface = videoSurface,
             cursorSurface = cursorSurface,
+            videoWidth = videoWidth,
+            videoHeight = videoHeight,
             clientID = clientID,
             roomID = roomID,
             token = token,
@@ -147,6 +151,11 @@ class StreamActivity : ComponentActivity() {
             reflexServers = rflxs,
             onMessage = this::onLtClientMessage
         )
+        if (!ltClient.ok()) {
+            Log.e("stream", "Create LtClient failed")
+            finish()
+            return
+        }
         ltClient.connect()
     }
 

@@ -38,8 +38,8 @@
 
 #include <ltlib/logging.h>
 
-//#include <ltproto/ltproto.h>
-//#include <ltproto/worker2service/reconfigure_video_encoder.pb.h>
+// #include <ltproto/ltproto.h>
+// #include <ltproto/worker2service/reconfigure_video_encoder.pb.h>
 
 #include <ltlib/threads.h>
 #include <ltlib/times.h>
@@ -49,6 +49,8 @@
 #include <graphics/drpipeline/video_statistics.h>
 #include <graphics/renderer/video_renderer.h>
 #include <graphics/widgets/widgets_manager.h>
+
+extern JavaVM* g_jvm;
 
 namespace lt {
 
@@ -82,7 +84,7 @@ private:
                        std::chrono::microseconds max_delay);
     bool waitForRender(std::chrono::microseconds ms);
     void onStat();
-    //void onUserSetBitrate(uint32_t bps);
+    // void onUserSetBitrate(uint32_t bps);
     std::tuple<int32_t, float, float> getCursorInfo();
     bool isAbsoluteMouse();
 
@@ -94,8 +96,8 @@ private:
     std::function<void(uint32_t, std::shared_ptr<google::protobuf::MessageLite>, bool)>
         send_message_to_host_;
     // NOTE: 安卓在video模块上不使用SDL
-    //PcSdl* sdl_;
-    void* window_;
+    // PcSdl* sdl_;
+    jobject window_;
 
     std::atomic<bool> request_i_frame_ = false;
     std::vector<VideoFrameInternal> encoded_frames_;
@@ -139,11 +141,8 @@ VDRPipeline::VDRPipeline(const VideoDecodeRenderPipeline::Params& params)
     , screen_refresh_rate_{params.screen_refresh_rate}
     , codec_type_{params.codec_type}
     , send_message_to_host_{params.send_message_to_host}
-    //, sdl_{params.sdl}
-    , statistics_{new VideoStatistics} {
-    // FIXME: 传递真正的window_
-    //window_ = params.sdl->window();
-}
+    , window_{params.video_surface}
+    , statistics_{new VideoStatistics} {}
 
 VDRPipeline::~VDRPipeline() {
     stoped_ = true;
@@ -151,6 +150,9 @@ VDRPipeline::~VDRPipeline() {
     render_thread_.reset();
     video_decoder_.reset();
     video_renderer_.reset();
+    JNIEnv* env = nullptr;
+    g_jvm->GetEnv((void**)&env, JNI_VERSION_1_6);
+    env->DeleteGlobalRef(window_);
 }
 
 bool VDRPipeline::init() {
@@ -223,8 +225,9 @@ bool VDRPipeline::init() {
     render_thread_ = ltlib::BlockingThread::create(
         "video_render",
         [this](const std::function<void()>& i_am_alive) { renderLoop(i_am_alive); });
-//    stat_thread_ = ltlib::TaskThread::create("stat_task");
-//    stat_thread_->post_delay(ltlib::TimeDelta{1'000'00}, std::bind(&VDRPipeline::onStat, this));
+    //    stat_thread_ = ltlib::TaskThread::create("stat_task");
+    //    stat_thread_->post_delay(ltlib::TimeDelta{1'000'00}, std::bind(&VDRPipeline::onStat,
+    //    this));
     return true;
 }
 
@@ -236,6 +239,9 @@ VideoDecodeRenderPipeline::Action VDRPipeline::submit(const lt::VideoFrame& _fra
     LOGF(DEBUG, "capture:%" PRId64 ", start_enc:% " PRId64 ", end_enc:%" PRId64,
          _frame.capture_timestamp_us, _frame.start_encode_timestamp_us,
          _frame.end_encode_timestamp_us);
+    if (_frame.is_keyframe) {
+        LOG(DEBUG) << "Received key frame size " << _frame.size;
+    }
     statistics_->addEncode();
     statistics_->updateVideoBW(_frame.size);
     statistics_->updateEncodeTime(_frame.end_encode_timestamp_us -
@@ -365,10 +371,11 @@ bool VDRPipeline::waitForRender(std::chrono::microseconds ms) {
 void VDRPipeline::onStat() {
     auto stat = statistics_->getStat();
     if (show_statistics_) {
-        //widgets_->updateStatistics(stat);
+        // widgets_->updateStatistics(stat);
     }
     if (show_statistics_) {
-        //widgets_->updateStatus((uint32_t)rtt_ / 1000, (uint32_t)stat.render_video_fps, loss_rate_);
+        // widgets_->updateStatus((uint32_t)rtt_ / 1000, (uint32_t)stat.render_video_fps,
+        // loss_rate_);
     }
     stat_thread_->post_delay(ltlib::TimeDelta{1'000'00}, std::bind(&VDRPipeline::onStat, this));
 }
@@ -428,17 +435,19 @@ void VDRPipeline::renderLoop(const std::function<void()>& i_am_alive) {
 
 VideoDecodeRenderPipeline::Params::Params(
     lt::VideoCodecType _codec_type, uint32_t _width, uint32_t _height,
-    uint32_t _screen_refresh_rate,
+    uint32_t _screen_refresh_rate, jobject _video_surface,
     std::function<void(uint32_t, std::shared_ptr<google::protobuf::MessageLite>, bool)>
         send_message)
-    : codec_type(_codec_type)
-    , width(_width)
-    , height(_height)
-    , screen_refresh_rate(_screen_refresh_rate)
-    , send_message_to_host(send_message) {}
+    : codec_type{_codec_type}
+    , width{_width}
+    , height{_height}
+    , screen_refresh_rate{_screen_refresh_rate}
+    , video_surface{_video_surface}
+    , send_message_to_host{send_message} {}
 
 bool VideoDecodeRenderPipeline::Params::validate() const {
-    if (codec_type == lt::VideoCodecType::Unknown || send_message_to_host == nullptr) {
+    if (codec_type == lt::VideoCodecType::Unknown || send_message_to_host == nullptr ||
+        width == 0 || height == 0 || video_surface == nullptr) {
         return false;
     }
     else {

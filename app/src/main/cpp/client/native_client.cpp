@@ -91,15 +91,24 @@ bool LtNativeClient::Params::validate() const {
     }
     if (client_id.empty() || room_id.empty() || token.empty() || p2p_username.empty() ||
         p2p_password.empty() || signaling_address.empty()) {
+        LOG(ERR) << "LtNativeClient::Params some string are empty";
         return false;
     }
     if (signaling_port <= 0 || signaling_port > 65535) {
+        LOG(ERR) << "LtNativeClient::Params invalid signaling port";
         return false;
     }
     if (codec != "avc" && codec != "hevc") {
+        LOG(ERR) << "LtNativeClient::Params invalid codec: " << codec;
         return false;
     }
     if (audio_channels <= 0 || audio_freq <= 0) {
+        LOGF(ERR, "LtNativeClient::Params invalid audio params{channels:%d, freq:%d}",
+             audio_channels, audio_freq);
+        return false;
+    }
+    if (width == 0 || height == 0) {
+        LOGF(ERR, "LtNativeClient::Params invalid video size{w:%d, h:%d}", width, height);
         return false;
     }
     return true;
@@ -123,7 +132,11 @@ LtNativeClient::LtNativeClient(const Params& params)
     : auth_token_{params.token}
     , p2p_username_{params.p2p_username}
     , p2p_password_{params.p2p_password}
-    , video_params_{to_ltrtc(params.codec), params.width, params.height, params.screen_refresh_rate,
+    , video_params_{to_ltrtc(params.codec),
+                    params.width,
+                    params.height,
+                    params.screen_refresh_rate,
+                    params.video_surface,
                     std::bind(&LtNativeClient::sendMessageToHost, this, std::placeholders::_1,
                               std::placeholders::_2, std::placeholders::_3)}
     , audio_params_{AudioCodecType::PCM, static_cast<uint32_t>(params.audio_freq),

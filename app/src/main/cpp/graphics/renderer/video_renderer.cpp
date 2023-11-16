@@ -41,7 +41,11 @@ std::unique_ptr<VideoRenderer> lt::VideoRenderer::create(const Params& params) {
     dummy_params.window = params.window;
     dummy_params.width = params.video_width;
     dummy_params.height = params.video_height;
-    return std::make_unique<AndroidDummyRenderer>(dummy_params);
+    auto renderer = std::make_unique<AndroidDummyRenderer>(dummy_params);
+    if (!renderer->init()) {
+        return nullptr;
+    }
+    return renderer;
 }
 
 } // namespace lt

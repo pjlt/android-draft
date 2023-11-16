@@ -27,6 +27,8 @@ import com.google.protobuf.Message
 class LtClient(
     private val videoSurface: Surface,
     private val cursorSurface: Surface,
+    private val videoWidth: Int,
+    private val videoHeight: Int,
     private val clientID: String,
     private val roomID: String,
     private val token: String,
@@ -51,10 +53,14 @@ class LtClient(
     private var nativeClient: Long = 0
 
     init {
-        nativeClient = createNativeClient( videoSurface, cursorSurface,
+        nativeClient = createNativeClient( videoSurface, cursorSurface, videoWidth, videoHeight,
             clientID, roomID, token, p2pUsername, p2pPassword, signalingAddress, signalingPort,
             codecType, audioChannels, audioFreq, reflexServers
         )
+    }
+
+    fun ok(): Boolean {
+        return nativeClient != 0L
     }
 
 
@@ -166,7 +172,8 @@ class LtClient(
     }
 
 
-    private external fun createNativeClient(videoSurface: Surface, cursorSurface: Surface, clientID: String, roomID: String, token: String,
+    private external fun createNativeClient(videoSurface: Surface, cursorSurface: Surface, videoWidth: Int, videoHeight: Int,
+                                            clientID: String, roomID: String, token: String,
                                             p2pUsername: String, p2pPassword: String, signalingAddress: String,
                                             signalingPort: Int, codecType: String, audioChannels: Int,
                                             audioFreq: Int, reflexServers: List<String>): Long
