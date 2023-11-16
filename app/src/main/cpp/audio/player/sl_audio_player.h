@@ -61,6 +61,7 @@ private:
     SLAndroidSimpleBufferQueueItf queue_ = nullptr;
     std::deque<std::vector<uint8_t>> buffer_;
     std::mutex mutex_;
+    std::vector<uint8_t> dummy_audio_;
 
 };
 

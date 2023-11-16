@@ -37,7 +37,10 @@
 namespace lt {
 
 SLAudioPlayer::SLAudioPlayer(const Params& params)
-    : AudioPlayer{params} {}
+    : AudioPlayer{params} {
+    dummy_audio_.resize(framesPer10ms() * sizeof(uint16_t) * channels());
+    memset(dummy_audio_.data(), 0, dummy_audio_.size());
+}
 
 SLAudioPlayer::~SLAudioPlayer() {
     std::lock_guard<std::mutex> lock{mutex_};
@@ -155,6 +158,10 @@ void SLAudioPlayer::slCallback(SLAndroidSimpleBufferQueueItf bq, void* context) 
 
 void SLAudioPlayer::doPlay() {
     std::lock_guard<std::mutex> lock{mutex_};
+    if (buffer_.empty()) {
+        (*queue_)->Enqueue(queue_, dummy_audio_.data(), dummy_audio_.size());
+        return;
+    }
     while (!buffer_.empty()) {
         (*queue_)->Enqueue(queue_, buffer_.back().data(), buffer_.back().size());
         buffer_.pop_back();
