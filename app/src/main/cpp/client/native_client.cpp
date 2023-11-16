@@ -86,7 +86,7 @@ std::string toString(lt::VideoCodecType codec) {
 namespace lt {
 
 bool LtNativeClient::Params::validate() const {
-    if (jvm_client == 0) {
+    if (jvm_client == nullptr) {
         return false;
     }
     if (client_id.empty() || room_id.empty() || token.empty() || p2p_username.empty() ||
@@ -136,7 +136,6 @@ LtNativeClient::~LtNativeClient() {
 
 bool LtNativeClient::start() {
     thread_ = ltlib::TaskThread::create("native_client");
-    should_exit_ = false;
     if (!initTransport()) {
         LOG(INFO) << "Initialize rtc failed";
         return false;

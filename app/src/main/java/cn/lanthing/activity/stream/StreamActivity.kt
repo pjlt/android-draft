@@ -147,6 +147,7 @@ class StreamActivity : ComponentActivity() {
             reflexServers = rflxs,
             onMessage = this::onLtClientMessage
         )
+        ltClient.connect()
     }
 
     private fun onLtClientMessage(msgType: UInt, msg: Message) {

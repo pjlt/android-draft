@@ -124,7 +124,6 @@ private:
     std::unique_ptr<AudioPlayer> audio_player_;
     lt::tp::Client* tp_client_ = nullptr;
     std::unique_ptr<ltlib::TaskThread> thread_;
-    bool should_exit_ = true;
     ltlib::TimeSync time_sync_;
     int64_t rtt_ = 0;
     int64_t time_diff_ = 0;

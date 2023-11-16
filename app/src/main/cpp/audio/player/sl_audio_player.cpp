@@ -96,7 +96,7 @@ bool SLAudioPlayer::initPlatform() {
     SLDataLocator_AndroidSimpleBufferQueue que = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
     SLDataFormat_PCM pcm = {SL_DATAFORMAT_PCM,
                             channels(),
-                            framesPerSec(),
+                            framesPerSec() * 1000,
                             SL_PCMSAMPLEFORMAT_FIXED_16,
                             SL_PCMSAMPLEFORMAT_FIXED_16,
                             SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,

@@ -161,6 +161,10 @@ class LtClient(
         signalingClient.sendMessage(LtProto.SignalingMessage.ID, msg)
     }
 
+    private fun dummyFunc() {
+        Log.i("ltmsdk", "LtClient.dummyFunc is called")
+    }
+
 
     private external fun createNativeClient(videoSurface: Surface, cursorSurface: Surface, clientID: String, roomID: String, token: String,
                                             p2pUsername: String, p2pPassword: String, signalingAddress: String,

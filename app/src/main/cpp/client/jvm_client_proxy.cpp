@@ -41,6 +41,7 @@ struct JMethods {
     lt::JvmClientProxy::JMethodInfo onNativeSignalingMessage = {"onNativeSignalingMessage",
                                                                 "(Ljava/lang/String;[B)V"};
     lt::JvmClientProxy::JMethodInfo onNativeConnected = {"onNativeConnected", "()V"};
+    lt::JvmClientProxy::JMethodInfo dummyFunc = {"dummyFunc", "()V"};
 };
 
 const char* kJvmClientClassName = "cn/lanthing/ltmsdk/LtClient";
@@ -58,10 +59,14 @@ std::unique_ptr<JvmClientProxy> JvmClientProxy::create(jobject jvm_obj) {
 }
 
 JvmClientProxy::JvmClientProxy(jobject jvm_obj)
-    : obj_{reinterpret_cast<jobject>(jvm_obj)} {}
+    : obj_{jvm_obj} {
+    LOG(INFO) << "JvmClientProxy jvm obj:" << obj_;
+}
 
 JvmClientProxy::~JvmClientProxy() {
-    // 得到的obj_似乎不需要处理
+    JNIEnv* env = nullptr;
+    g_jvm->GetEnv((void**)&env, JNI_VERSION_1_6);
+    env->DeleteGlobalRef(obj_);
 }
 
 bool JvmClientProxy::init() {
@@ -76,7 +81,8 @@ bool JvmClientProxy::init() {
     JMethods methods;
     if (!loadMethod(env, methods.onNativeClosed, on_closed_) ||
         !loadMethod(env, methods.onNativeConnected, on_connected_) ||
-        !loadMethod(env, methods.onNativeSignalingMessage, on_signaling_message_)) {
+        !loadMethod(env, methods.onNativeSignalingMessage, on_signaling_message_) ||
+        !loadMethod(env, methods.dummyFunc, dummy_)) {
         return false;
     }
     return true;
@@ -93,7 +99,8 @@ void JvmClientProxy::onNativeSignalingMessage(const std::string& key, const std:
     JNIEnv* env;
     g_jvm->AttachCurrentThread(&env, nullptr);
     jbyteArray jb = env->NewByteArray(static_cast<jsize>(value.size()));
-    env->SetByteArrayRegion(jb, 0, static_cast<jsize>(value.size()), reinterpret_cast<const jbyte*>(value.data()));
+    env->SetByteArrayRegion(jb, 0, static_cast<jsize>(value.size()),
+                            reinterpret_cast<const jbyte*>(value.data()));
     env->CallVoidMethod(obj_, on_signaling_message_, env->NewStringUTF(key.c_str()), jb);
     g_jvm->DetachCurrentThread();
 }
@@ -111,6 +118,7 @@ bool JvmClientProxy::loadMethod(JNIEnv* env, JMethodInfo info, jmethodID& jmid) 
         LOG(ERR) << "GetMethodID(" << info.name << ") failed";
         return false;
     }
+    LOG(INFO) << "GetMethodID success: " << info.name;
     return true;
 }
 

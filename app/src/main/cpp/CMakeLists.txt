@@ -57,7 +57,7 @@ target_link_libraries(${PROJECT_NAME}
         mediandk
         GLESv2
         EGL
-        c++_static
+        c++_shared
         ltlib
         transport
         ltproto

@@ -162,7 +162,7 @@ class MainActivity : ComponentActivity() {
     private fun onLoginDeviceAck(msg: LoginDeviceAck) {
         when (msg.errCode) {
             ErrorCodeOuterClass.ErrorCode.Success -> {
-                Log.e("main", "LoginDevice success")
+                Log.i("main", "LoginDevice success")
             }
             ErrorCodeOuterClass.ErrorCode.LoginDeviceInvalidStatus -> {
                 setContent {
@@ -267,7 +267,7 @@ class MainActivity : ComponentActivity() {
             bundle.putString("p2pPassword", msg.p2PPassword)
             bundle.putString("signalingAddress", msg.signalingAddr)
             bundle.putInt("signalingPort", msg.signalingPort)
-            bundle.putString("codecType", codec.toString())
+            bundle.putString("codecType", codec.toString().lowercase())
             bundle.putInt("audioChannels", msg.streamingParams.audioChannels)
             bundle.putInt("audioFreq", msg.streamingParams.audioSampleRate)
             bundle.putStringArrayList("reflexServers", reflxs)

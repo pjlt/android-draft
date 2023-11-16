@@ -69,6 +69,7 @@ private:
     jmethodID on_closed_ = nullptr;
     jmethodID on_signaling_message_ = nullptr;
     jmethodID on_connected_ = nullptr;
+    jmethodID dummy_ = nullptr;
 };
 
 } // namespace lt

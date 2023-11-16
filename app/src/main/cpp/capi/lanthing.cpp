@@ -35,6 +35,7 @@
 #include <jni.h>
 
 #include <client/native_client.h>
+#include <ltlib/logging.h>
 #include <ltlib/threads.h>
 
 JavaVM* g_jvm = nullptr;
@@ -53,6 +54,7 @@ lt::LtNativeClient* ncast(jlong ptr) {
 } // namespace
 
 extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+    LOG(INFO) << "JNI_OnLoad";
     (void)reserved;
     g_jvm = vm;
     return JNI_VERSION_1_6;
@@ -64,6 +66,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_cn_lanthing_ltmsdk_LtClient_createNative
     jstring signaling_address, jint signaling_port, jstring codec_type, jint audio_channels,
     jint audio_freq, jobject reflex_servers) {
 
+    LOG(INFO) << "createNativeClient JvmClient " << thiz;
     ltlib::ThreadWatcher::instance()->disableCrashOnTimeout();
     jclass cList = env->FindClass("java/util/List");
     jmethodID mSize = env->GetMethodID(cList, "size", "()I");
@@ -78,7 +81,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_cn_lanthing_ltmsdk_LtClient_createNative
         rflxs.push_back(jStr2Std(env, strObj));
     }
     lt::LtNativeClient::Params params{};
-    params.jvm_client = thiz;
+    params.jvm_client = env->NewGlobalRef(thiz); // NOTE: 由内部释放
     params.video_surface = video_surface;
     params.cursor_surface = cursor_surface;
     params.client_id = jStr2Std(env, client_id);
@@ -122,20 +125,18 @@ Java_cn_lanthing_ltmsdk_LtClient_nativeSwitchMouseMode(JNIEnv* env, jobject thiz
     ncast(cli)->switchMouseMode();
 }
 
-extern "C"
-JNIEXPORT void JNICALL
-Java_cn_lanthing_ltmsdk_LtClient_nativeStop(JNIEnv *env, jobject thiz, jlong cli) {
+extern "C" JNIEXPORT void JNICALL Java_cn_lanthing_ltmsdk_LtClient_nativeStop(JNIEnv* env,
+                                                                              jobject thiz,
+                                                                              jlong cli) {
     ncast(cli)->onPlatformStop();
 }
 
-extern "C"
-JNIEXPORT void JNICALL
-Java_cn_lanthing_ltmsdk_LtClient_nativeOnSignalingMessage(JNIEnv *env, jobject thiz, jlong cli, jstring key,
-                                                          jbyteArray value) {
+extern "C" JNIEXPORT void JNICALL Java_cn_lanthing_ltmsdk_LtClient_nativeOnSignalingMessage(
+    JNIEnv* env, jobject thiz, jlong cli, jstring key, jbyteArray value) {
     jboolean isCopy;
     jbyte* jb = env->GetByteArrayElements(value, &isCopy);
     jsize size = env->GetArrayLength(value);
-    std::string real_value(jb, jb+size);
+    std::string real_value(jb, jb + size);
     env->ReleaseByteArrayElements(value, jb, 0);
     ncast(cli)->onSignalingMessage(jStr2Std(env, key), real_value);
 }

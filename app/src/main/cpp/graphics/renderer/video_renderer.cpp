@@ -32,10 +32,16 @@
 
 #include "android_gl_pipeline.h"
 
+#include <graphics/renderer/android_dummy_renderer.h>
+
 namespace lt {
 
 std::unique_ptr<VideoRenderer> lt::VideoRenderer::create(const Params& params) {
-    return nullptr;
+    AndroidDummyRenderer::Params dummy_params{};
+    dummy_params.window = params.window;
+    dummy_params.width = params.video_width;
+    dummy_params.height = params.video_height;
+    return std::make_unique<AndroidDummyRenderer>(dummy_params);
 }
 
 } // namespace lt
